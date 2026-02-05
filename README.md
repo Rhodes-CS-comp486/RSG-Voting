@@ -9,3 +9,6 @@ https://docs.google.com/document/d/10hkM_R3i1BxMBEXoUS72mrbODzzDknvG2o0ZvyA2Zms/
 
 Team Standards
 https://docs.google.com/document/d/1E_OF3bnY5AqEKJaSTWoxDr3bxOGeLudVcjFfn43o-9w/edit?usp=sharing
+
+Trello board
+https://trello.com/invite/b/696feb1b90250a5c1a3b691a/ATTI3dfa644ad41b70b8892c880bdc16b8cdDAF4C5A7/rsg-board
