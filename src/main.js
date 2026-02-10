@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { createEngine } = require('./voting/index');
+
+const engine = createEngine();
 
 let mainWindow;
 
@@ -57,4 +60,29 @@ app.on('window-all-closed', () => {
 // IPC handlers for communication between main and renderer processes
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
+});
+
+ipcMain.handle('voting:get-methods', () => {
+  return engine.getAvailableMethods();
+});
+
+ipcMain.handle('voting:run-election', (event, config) => {
+  try {
+    const result = engine.runElection(config);
+    return { success: true, result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('voting:validate-ballots', (event, { method, candidates, ballots }) => {
+  try {
+    const votingMethod = engine.methods.get(method);
+    if (!votingMethod) {
+      return { valid: false, errors: [`Unknown method: ${method}`] };
+    }
+    return votingMethod.validate(candidates, ballots);
+  } catch (error) {
+    return { valid: false, errors: [error.message] };
+  }
 });
