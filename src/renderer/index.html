@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>RSG Voting</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Rhodes Student Government</h1>
+      <h2>Election Voting System</h2>
+    </header>
+
+    <main>
+      <div class="welcome-section">
+        <h3>Welcome to the RSG Voting App</h3>
+        <p>This application helps Rhodes Student Government accurately count election results.</p>
+
+        <div class="status-card">
+          <h4>System Status</h4>
+          <p>App Version: <span id="app-version">Loading...</span></p>
+          <p>Status: <span class="status-indicator">Ready</span></p>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="start-voting">Start New Election</button>
+          <button class="btn btn-secondary" id="view-results">View Results</button>
+          <button class="btn btn-secondary" id="settings">Settings</button>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h4>Quick Stats</h4>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h5>Total Elections</h5>
+            <p class="stat-number">0</p>
+          </div>
+          <div class="stat-card">
+            <h5>Active Voters</h5>
+            <p class="stat-number">0</p>
+          </div>
+          <div class="stat-card">
+            <h5>Completed Ballots</h5>
+            <p class="stat-number">0</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 Rhodes Student Government - Built with Electron</p>
+    </footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
