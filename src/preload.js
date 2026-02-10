@@ -4,5 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  // Add more IPC handlers here as needed for your voting app
+  getVotingMethods: () => ipcRenderer.invoke('voting:get-methods'),
+  runElection: (config) => ipcRenderer.invoke('voting:run-election', config),
+  validateBallots: (data) => ipcRenderer.invoke('voting:validate-ballots', data),
 });

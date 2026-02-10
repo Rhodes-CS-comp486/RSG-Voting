@@ -15,40 +15,118 @@
     </header>
 
     <main>
-      <div class="welcome-section">
-        <h3>Welcome to the RSG Voting App</h3>
-        <p>This application helps Rhodes Student Government accurately count election results.</p>
+      <!-- VIEW: Home -->
+      <section id="view-home" class="view">
+        <div class="welcome-section">
+          <h3>Welcome to the RSG Voting App</h3>
+          <p>This application helps Rhodes Student Government accurately count election results.</p>
 
-        <div class="status-card">
-          <h4>System Status</h4>
-          <p>App Version: <span id="app-version">Loading...</span></p>
-          <p>Status: <span class="status-indicator">Ready</span></p>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-primary" id="start-voting">Start New Election</button>
-          <button class="btn btn-secondary" id="view-results">View Results</button>
-          <button class="btn btn-secondary" id="settings">Settings</button>
-        </div>
-      </div>
-
-      <div class="info-section">
-        <h4>Quick Stats</h4>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h5>Total Elections</h5>
-            <p class="stat-number">0</p>
+          <div class="status-card">
+            <h4>System Status</h4>
+            <p>App Version: <span id="app-version">Loading...</span></p>
+            <p>Status: <span class="status-indicator">Ready</span></p>
           </div>
-          <div class="stat-card">
-            <h5>Active Voters</h5>
-            <p class="stat-number">0</p>
-          </div>
-          <div class="stat-card">
-            <h5>Completed Ballots</h5>
-            <p class="stat-number">0</p>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="start-voting">Start New Election</button>
+            <button class="btn btn-secondary" id="view-results-btn">View Results</button>
+            <button class="btn btn-secondary" id="settings">Settings</button>
           </div>
         </div>
-      </div>
+
+        <div class="info-section">
+          <h4>Quick Stats</h4>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h5>Total Elections</h5>
+              <p class="stat-number" id="stat-elections">0</p>
+            </div>
+            <div class="stat-card">
+              <h5>Active Voters</h5>
+              <p class="stat-number" id="stat-voters">0</p>
+            </div>
+            <div class="stat-card">
+              <h5>Completed Ballots</h5>
+              <p class="stat-number" id="stat-ballots">0</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: Election Setup -->
+      <section id="view-setup" class="view" style="display: none;">
+        <div class="welcome-section">
+          <h3>Set Up New Election</h3>
+
+          <div class="form-group">
+            <label for="election-title">Election Title</label>
+            <input type="text" id="election-title" placeholder="e.g., SGA President 2026">
+          </div>
+
+          <div class="form-group">
+            <label for="voting-method">Voting Method</label>
+            <select id="voting-method"></select>
+          </div>
+
+          <div class="form-group">
+            <label for="seats-input">Number of Seats (winners)</label>
+            <input type="number" id="seats-input" min="1" value="1" placeholder="1">
+          </div>
+
+          <div class="form-group">
+            <label for="candidates-input">Candidates (one per line)</label>
+            <textarea id="candidates-input" rows="6"
+                      placeholder="Alice Johnson&#10;Bob Smith&#10;Charlie Davis"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="ballots-input">Ballots (one per line, comma-separated ranked choices)</label>
+            <textarea id="ballots-input" rows="10"
+                      placeholder="Alice Johnson, Bob Smith, Charlie Davis&#10;Bob Smith, Charlie Davis&#10;Charlie Davis, Alice Johnson, Bob Smith"></textarea>
+          </div>
+
+          <div id="validation-errors" class="error-box" style="display: none;"></div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="run-election-btn">Run Election</button>
+            <button class="btn btn-secondary" id="setup-back-btn">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: Results -->
+      <section id="view-results-page" class="view" style="display: none;">
+        <div class="welcome-section">
+          <h3 id="results-title">Election Results</h3>
+
+          <div id="result-summary" class="status-card"></div>
+
+          <div id="result-stats" class="info-section">
+            <h4>Election Stats</h4>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h5>Total Ballots</h5>
+                <p class="stat-number" id="result-total-ballots">0</p>
+              </div>
+              <div class="stat-card">
+                <h5>Candidates</h5>
+                <p class="stat-number" id="result-total-candidates">0</p>
+              </div>
+              <div class="stat-card">
+                <h5>Exhausted Ballots</h5>
+                <p class="stat-number" id="result-exhausted">0</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="rounds-container"></div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="new-election-btn">New Election</button>
+            <button class="btn btn-secondary" id="results-back-btn">Back to Home</button>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>
