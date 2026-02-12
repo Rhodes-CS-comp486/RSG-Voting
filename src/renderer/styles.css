@@ -302,6 +302,71 @@ main {
   color: #333;
 }
 
+/* Rank distribution table */
+.rank-table-wrapper {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+}
+
+.rank-table-wrapper h5 {
+  color: #555;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.rank-table thead th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.rank-table thead th:first-child {
+  text-align: left;
+  border-radius: 4px 0 0 0;
+}
+
+.rank-table thead th:last-child {
+  border-radius: 0 4px 0 0;
+}
+
+.rank-table tbody td {
+  padding: 6px 12px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.rank-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-table tbody tr:hover {
+  background: #e9ecef;
+}
+
+.rank-table-candidate {
+  text-align: left !important;
+  font-weight: 500;
+}
+
+.rank-first {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.rank-total {
+  font-weight: 700;
+  border-left: 2px solid #dee2e6;
+}
+
 footer {
   margin-top: 30px;
   text-align: center;

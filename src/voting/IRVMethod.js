@@ -92,6 +92,7 @@ class IRVMethod extends VotingMethod {
             elected: [candidate],
             totalActiveBallots: totalActive,
             threshold,
+            rankDistribution: this._computeRankDistribution(activeCandidates, workingBallots),
           });
 
           return this._buildResult(candidates, ballots, rounds, [candidate], false, exhaustedCount, 1);
@@ -110,6 +111,7 @@ class IRVMethod extends VotingMethod {
           elected: null,
           totalActiveBallots: totalActive,
           threshold,
+          rankDistribution: this._computeRankDistribution(activeCandidates, workingBallots),
         });
 
         return this._buildResult(candidates, ballots, rounds, [], true, exhaustedCount, 1);
@@ -126,6 +128,7 @@ class IRVMethod extends VotingMethod {
         elected: null,
         totalActiveBallots: totalActive,
         threshold,
+        rankDistribution: this._computeRankDistribution(activeCandidates, workingBallots),
       });
 
       for (const candidate of eliminated) {
@@ -157,6 +160,7 @@ class IRVMethod extends VotingMethod {
         elected: [remaining[0]],
         totalActiveBallots: finalActive,
         threshold: Math.floor(finalActive / 2) + 1,
+        rankDistribution: this._computeRankDistribution(activeCandidates, workingBallots),
       });
 
       return this._buildResult(candidates, ballots, rounds, [remaining[0]], false, exhaustedCount, 1);
@@ -207,6 +211,7 @@ class IRVMethod extends VotingMethod {
           elected: [...remaining],
           totalActiveBallots: totalActive,
           threshold: null,
+          rankDistribution: this._computeRankDistribution(activeCandidates, weightedBallots),
         });
 
         winners.push(...remaining);
@@ -257,6 +262,7 @@ class IRVMethod extends VotingMethod {
           elected: [...newlyElected],
           totalActiveBallots: weightedBallots.length,
           threshold: quota,
+          rankDistribution: this._computeRankDistribution(activeCandidates, weightedBallots),
         });
 
         for (const elected of newlyElected) {
@@ -304,6 +310,7 @@ class IRVMethod extends VotingMethod {
           elected: null,
           totalActiveBallots: weightedBallots.length,
           threshold: quota,
+          rankDistribution: this._computeRankDistribution(activeCandidates, weightedBallots),
         });
 
         return this._buildResult(candidates, ballots, rounds, winners, true, exhaustedCount, seats);
@@ -320,6 +327,7 @@ class IRVMethod extends VotingMethod {
         elected: null,
         totalActiveBallots: weightedBallots.length,
         threshold: quota,
+        rankDistribution: this._computeRankDistribution(activeCandidates, weightedBallots),
       });
 
       for (const candidate of eliminated) {
@@ -328,6 +336,27 @@ class IRVMethod extends VotingMethod {
     }
 
     return this._buildResult(candidates, ballots, rounds, winners, false, exhaustedCount, seats);
+  }
+
+  // Compute how many ballots rank each active candidate at each effective position
+  _computeRankDistribution(activeCandidates, ballots) {
+    const distribution = {};
+    const numActive = activeCandidates.size;
+    for (const c of activeCandidates) {
+      distribution[c] = new Array(numActive).fill(0);
+    }
+
+    for (const ballot of ballots) {
+      const ranking = Array.isArray(ballot)
+        ? ballot.filter(c => activeCandidates.has(c))
+        : ballot.ranking.filter(c => activeCandidates.has(c));
+
+      for (let i = 0; i < ranking.length; i++) {
+        distribution[ranking[i]][i]++;
+      }
+    }
+
+    return distribution;
   }
 
   _buildResult(candidates, ballots, rounds, winners, isTie, exhaustedBallots, seats) {
