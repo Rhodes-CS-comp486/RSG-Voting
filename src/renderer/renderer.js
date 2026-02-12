@@ -1,6 +1,12 @@
 let lastResult = null;
 let electionCount = 0;
 
+function ordinalSuffix(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
 // View switching — hides all sections, shows the one you want
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
@@ -161,6 +167,42 @@ function displayResults(result) {
         </div>`;
     }
 
+    let rankTableHTML = '';
+    if (round.rankDistribution) {
+      const candidates = Object.keys(round.rankDistribution);
+      const numPositions = Math.max(...candidates.map(c => round.rankDistribution[c].length));
+
+      let headerCells = '<th>Candidate</th>';
+      for (let i = 0; i < numPositions; i++) {
+        headerCells += `<th>${i + 1}${ordinalSuffix(i + 1)}</th>`;
+      }
+      headerCells += '<th>Total</th>';
+
+      let bodyRows = '';
+      for (const candidate of candidates) {
+        const counts = round.rankDistribution[candidate];
+        let cells = `<td class="rank-table-candidate">${candidate}</td>`;
+        let total = 0;
+        for (let i = 0; i < numPositions; i++) {
+          const count = counts[i] || 0;
+          total += count;
+          const isFirst = i === 0;
+          cells += `<td class="${isFirst ? 'rank-first' : ''}">${count}</td>`;
+        }
+        cells += `<td class="rank-total">${total}</td>`;
+        bodyRows += `<tr>${cells}</tr>`;
+      }
+
+      rankTableHTML = `
+        <div class="rank-table-wrapper">
+          <h5>Ranking Distribution</h5>
+          <table class="rank-table">
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>`;
+    }
+
     let statusHTML = '';
     if (round.elected && round.elected.length > 0) {
       statusHTML = `<p class="winner-text">Elected: ${round.elected.join(', ')}</p>`;
@@ -173,6 +215,7 @@ function displayResults(result) {
     card.innerHTML = `
       <h4>Round ${round.roundNumber} (${thresholdText})</h4>
       ${barsHTML}
+      ${rankTableHTML}
       ${statusHTML}`;
 
     container.appendChild(card);
