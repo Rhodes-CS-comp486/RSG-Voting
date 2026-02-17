@@ -152,20 +152,7 @@ function displayResults(result) {
     const card = document.createElement('div');
     card.className = 'round-card';
 
-    const maxVotes = Math.max(...Object.values(round.tallies));
-
-    let barsHTML = '';
-    for (const [candidate, votes] of Object.entries(round.tallies)) {
-      const pct = maxVotes > 0 ? (votes / round.totalActiveBallots) * 100 : 0;
-      barsHTML += `
-        <div class="vote-bar-row">
-          <span class="vote-bar-label">${candidate}</span>
-          <div class="vote-bar-track">
-            <div class="vote-bar-fill" style="width: ${pct}%"></div>
-          </div>
-          <span class="vote-bar-count">${votes}</span>
-        </div>`;
-    }
+    const eliminatedSet = new Set(round.eliminated || []);
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
@@ -190,7 +177,8 @@ function displayResults(result) {
           cells += `<td class="${isFirst ? 'rank-first' : ''}">${count}</td>`;
         }
         cells += `<td class="rank-total">${total}</td>`;
-        bodyRows += `<tr>${cells}</tr>`;
+        const trClass = eliminatedSet.has(candidate) ? ' class="eliminated-row"' : '';
+        bodyRows += `<tr${trClass}>${cells}</tr>`;
       }
 
       rankTableHTML = `
@@ -214,7 +202,6 @@ function displayResults(result) {
     const thresholdText = round.threshold != null ? `Threshold: ${round.threshold}` : 'Final';
     card.innerHTML = `
       <h4>Round ${round.roundNumber} (${thresholdText})</h4>
-      ${barsHTML}
       ${rankTableHTML}
       ${statusHTML}`;
 
