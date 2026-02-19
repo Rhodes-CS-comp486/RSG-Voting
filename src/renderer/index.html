@@ -77,15 +77,47 @@
           </div>
 
           <div class="form-group">
-            <label for="candidates-input">Candidates (one per line)</label>
-            <textarea id="candidates-input" rows="6"
-                      placeholder="Alice Johnson&#10;Bob Smith&#10;Charlie Davis"></textarea>
-          </div>
+            <label>Election Data File</label>
+            <div class="drop-zone" id="drop-zone">
+              <div class="drop-zone-content">
+                <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="drop-zone-text">Drag &amp; drop your CSV file here</p>
+                <p class="drop-zone-subtext">or</p>
+                <button class="btn btn-secondary" id="browse-btn" type="button">Browse Files</button>
+                <input type="file" id="file-input" accept=".csv,.txt" style="display: none;">
+                <p class="drop-zone-hint">Accepts .csv or .txt files</p>
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="ballots-input">Ballots (one per line, comma-separated ranked choices)</label>
-            <textarea id="ballots-input" rows="10"
-                      placeholder="Alice Johnson, Bob Smith, Charlie Davis&#10;Bob Smith, Charlie Davis&#10;Charlie Davis, Alice Johnson, Bob Smith"></textarea>
+            <div id="file-preview" class="file-preview" style="display: none;">
+              <div class="file-preview-header">
+                <span class="file-preview-name" id="file-name-display"></span>
+                <button class="btn-clear" id="clear-file-btn" type="button">Clear</button>
+              </div>
+              <div class="preview-stats">
+                <span class="preview-stat" id="preview-candidates-count"></span>
+                <span class="preview-stat" id="preview-ballots-count"></span>
+              </div>
+              <div id="preview-candidates-list" class="preview-list"></div>
+            </div>
+
+            <div class="file-format-hint">
+              <details>
+                <summary>File format help</summary>
+                <pre class="format-example">CANDIDATES
+Alice Johnson
+Bob Smith
+Charlie Davis
+BALLOTS
+Alice Johnson, Bob Smith, Charlie Davis
+Bob Smith, Charlie Davis
+Charlie Davis, Alice Johnson, Bob Smith</pre>
+              </details>
+            </div>
           </div>
 
           <div id="validation-errors" class="error-box" style="display: none;"></div>
