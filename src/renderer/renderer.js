@@ -156,27 +156,27 @@ function displayResults(result) {
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
-      const candidates = Object.keys(round.rankDistribution);
+      const candidates = Object.keys(round.rankDistribution).sort((a, b) => {
+        const aFirst = round.rankDistribution[a][0] || 0;
+        const bFirst = round.rankDistribution[b][0] || 0;
+        return bFirst - aFirst;
+      });
       const numPositions = Math.max(...candidates.map(c => round.rankDistribution[c].length));
 
       let headerCells = '<th>Candidate</th>';
       for (let i = 0; i < numPositions; i++) {
         headerCells += `<th>${i + 1}${ordinalSuffix(i + 1)}</th>`;
       }
-      headerCells += '<th>Total</th>';
 
       let bodyRows = '';
       for (const candidate of candidates) {
         const counts = round.rankDistribution[candidate];
         let cells = `<td class="rank-table-candidate">${candidate}</td>`;
-        let total = 0;
         for (let i = 0; i < numPositions; i++) {
           const count = counts[i] || 0;
-          total += count;
           const isFirst = i === 0;
           cells += `<td class="${isFirst ? 'rank-first' : ''}">${count}</td>`;
         }
-        cells += `<td class="rank-total">${total}</td>`;
         const trClass = eliminatedSet.has(candidate) ? ' class="eliminated-row"' : '';
         bodyRows += `<tr${trClass}>${cells}</tr>`;
       }
