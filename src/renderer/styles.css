@@ -558,6 +558,84 @@ main {
   white-space: pre;
   font-family: 'Courier New', monospace;
   line-height: 1.6;
+/* Borda results breakdown */
+.borda-winner-label {
+  color: #cc0000;
+  font-weight: 700;
+}
+
+.borda-winner-row {
+  background: #fff5f5;
+}
+
+.borda-total-pts {
+  font-weight: 700;
+  color: #cc0000;
+  border-left: 2px solid #dee2e6;
+}
+
+.borda-total-pts-header {
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Voting method tooltip */
+.method-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.method-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #cc0000;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: default;
+  vertical-align: middle;
+}
+
+.method-tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: 280px;
+  background: #1a1a1a;
+  color: white;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px 14px;
+  position: absolute;
+  z-index: 100;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.method-tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1a1a1a transparent transparent transparent;
+}
+
+.method-tooltip-wrapper:hover .method-tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
 footer {
