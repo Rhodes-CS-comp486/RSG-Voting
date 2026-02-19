@@ -1,5 +1,74 @@
 let lastResult = null;
 let electionCount = 0;
+let parsedCandidates = [];
+let parsedBallots = [];
+
+function parseElectionFile(text) {
+  const lines = text.split('\n').map(l => l.trim());
+  const candidates = [];
+  const ballots = [];
+  let section = null;
+
+  for (const line of lines) {
+    if (!line) continue;
+    const upper = line.replace(/:$/, '').toUpperCase();
+    if (upper === 'CANDIDATES') {
+      section = 'candidates';
+    } else if (upper === 'BALLOTS') {
+      section = 'ballots';
+    } else if (section === 'candidates') {
+      candidates.push(line);
+    } else if (section === 'ballots') {
+      const ballot = line.split(',').map(c => c.trim()).filter(Boolean);
+      if (ballot.length > 0) ballots.push(ballot);
+    }
+  }
+
+  return { candidates, ballots };
+}
+
+function handleFileLoad(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const { candidates, ballots } = parseElectionFile(text);
+
+    if (candidates.length === 0 && ballots.length === 0) {
+      const errBox = document.getElementById('validation-errors');
+      errBox.textContent = 'Could not parse any candidates or ballots from the file. Check the file format.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    parsedCandidates = candidates;
+    parsedBallots = ballots;
+
+    // Update drop zone appearance
+    document.getElementById('drop-zone').classList.add('has-file');
+
+    // Show preview
+    const preview = document.getElementById('file-preview');
+    document.getElementById('file-name-display').textContent = file.name;
+    document.getElementById('preview-candidates-count').textContent =
+      `${candidates.length} candidate${candidates.length !== 1 ? 's' : ''}`;
+    document.getElementById('preview-ballots-count').textContent =
+      `${ballots.length} ballot${ballots.length !== 1 ? 's' : ''}`;
+
+    const list = document.getElementById('preview-candidates-list');
+    list.innerHTML = candidates.map(c => `<div>${c}</div>`).join('');
+
+    preview.style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+
+function clearFile() {
+  parsedCandidates = [];
+  parsedBallots = [];
+  document.getElementById('drop-zone').classList.remove('has-file');
+  document.getElementById('file-preview').style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
 
 const METHOD_DESCRIPTIONS = {
   irv: 'Instant-Runoff Voting (IRV): Voters rank candidates by preference. If no candidate wins a majority of first-choice votes, the last-place candidate is eliminated and their votes transfer to each ballot\'s next choice. Repeats until a winner is found. For multiple seats, STV (Single Transferable Vote) is used.',
@@ -76,25 +145,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     showView('view-home');
   });
 
+  // Drop zone: drag events
+  const dropZone = document.getElementById('drop-zone');
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileLoad(file);
+  });
+
+  // Drop zone: click to browse
+  dropZone.addEventListener('click', (e) => {
+    if (!dropZone.classList.contains('has-file')) {
+      document.getElementById('file-input').click();
+    }
+  });
+
+  document.getElementById('browse-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('file-input').click();
+  });
+
+  document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleFileLoad(file);
+  });
+
+  document.getElementById('clear-file-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearFile();
+  });
+
   document.getElementById('run-election-btn').addEventListener('click', async () => {
     const errBox = document.getElementById('validation-errors');
     errBox.style.display = 'none';
 
     const title = document.getElementById('election-title').value.trim();
     const method = document.getElementById('voting-method').value;
-    const candidatesRaw = document.getElementById('candidates-input').value.trim();
-    const ballotsRaw = document.getElementById('ballots-input').value.trim();
-
-    // Parse candidates: split by newline, trim, filter empty
-    const candidates = candidatesRaw.split('\n').map(c => c.trim()).filter(Boolean);
-
-    // Parse ballots: each line is comma-separated ranked choices
-    const ballots = ballotsRaw.split('\n')
-      .map(line => line.split(',').map(c => c.trim()).filter(Boolean))
-      .filter(b => b.length > 0);
+    const candidates = parsedCandidates;
+    const ballots = parsedBallots;
 
     if (candidates.length === 0 || ballots.length === 0) {
-      errBox.textContent = 'Please enter at least one candidate and one ballot.';
+      errBox.textContent = 'Please upload a file with at least one candidate and one ballot.';
       errBox.style.display = 'block';
       return;
     }
@@ -120,6 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Results view buttons ---
 
   document.getElementById('new-election-btn').addEventListener('click', async () => {
+    clearFile();
     showView('view-setup');
 
     const methods = await window.electronAPI.getVotingMethods();
