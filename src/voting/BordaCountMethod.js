@@ -87,6 +87,8 @@ class BordaCountMethod extends VotingMethod {
       title: '',
       winners,
       elected: winners,
+      scores,
+      rankDistribution: this._computeRankDistribution(candidates, ballots),
       // renderer-compatible fields
       isTie,
       summary,
@@ -161,6 +163,7 @@ class BordaCountMethod extends VotingMethod {
       winners: elected,
       rounds,
       scores,
+      rankDistribution: this._computeRankDistribution(candidates, ballots),
       // renderer-compatible fields
       isTie: false,
       summary: `${elected.length} seats filled: ${elected.join(', ')}.`,
@@ -174,6 +177,22 @@ class BordaCountMethod extends VotingMethod {
       seatsElected: elected.length,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  _computeRankDistribution(candidates, ballots) {
+    const distribution = {};
+    for (const c of candidates) {
+      distribution[c] = new Array(candidates.length).fill(0);
+    }
+    for (const ballot of ballots) {
+      for (let i = 0; i < ballot.length; i++) {
+        const candidate = ballot[i];
+        if (distribution[candidate] !== undefined) {
+          distribution[candidate][i]++;
+        }
+      }
+    }
+    return distribution;
   }
 }
 
