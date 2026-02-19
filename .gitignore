@@ -30,3 +30,7 @@ yarn-error.log*
 data/
 *.db
 *.sqlite
+
+# CSV ballot files
+*.csv
+Class of 2026 Ballot_February 16, 2026_10.14_blinded.csv
