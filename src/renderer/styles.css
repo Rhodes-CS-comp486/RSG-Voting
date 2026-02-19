@@ -378,6 +378,42 @@ main {
   );
 }
 
+/* Input mode toggle */
+.input-mode-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 2px solid #cc0000;
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.mode-btn {
+  padding: 8px 24px;
+  border: none;
+  background: white;
+  color: #cc0000;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.mode-btn:first-child {
+  border-right: 1px solid #cc0000;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, #1a1a1a 0%, #cc0000 100%);
+  color: white;
+}
+
+.mode-btn:not(.active):hover {
+  background: #fff0f0;
+}
+
 /* Drop zone */
 .drop-zone {
   border: 3px dashed #cc0000;
