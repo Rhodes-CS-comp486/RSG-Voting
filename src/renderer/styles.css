@@ -378,6 +378,75 @@ main {
   );
 }
 
+/* CSV Upload */
+.csv-upload-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-name-display {
+  color: #28a745;
+  font-size: 14px;
+}
+
+.form-help-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.form-divider {
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.form-divider::before,
+.form-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: #ddd;
+}
+
+.form-divider::before { left: 0; }
+.form-divider::after { right: 0; }
+
+.form-divider span {
+  background: white;
+  padding: 0 10px;
+  color: #666;
+}
+
+/* Multi-Position Results */
+.position-header {
+  background: linear-gradient(135deg, #cc0000 0%, #8b0000 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin: 20px 0 10px 0;
+}
+
+.position-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.position-divider {
+  margin: 30px 0;
+  border: none;
+  border-top: 2px solid #e0e0e0;
+}
+
+.multi-position-summary p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
 footer {
   margin-top: 30px;
   text-align: center;

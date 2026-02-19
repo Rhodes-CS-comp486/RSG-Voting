@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { createEngine } = require('./voting/index');
+const { parseQualtricsCSV } = require('./utils/csvParser');
 
 const engine = createEngine();
 
@@ -84,5 +85,13 @@ ipcMain.handle('voting:validate-ballots', (event, { method, candidates, ballots 
     return votingMethod.validate(candidates, ballots);
   } catch (error) {
     return { valid: false, errors: [error.message] };
+  }
+});
+
+ipcMain.handle('voting:parse-csv', (event, csvContent) => {
+  try {
+    return parseQualtricsCSV(csvContent);
+  } catch (error) {
+    return { success: false, positions: null, error: error.message };
   }
 });

@@ -77,6 +77,24 @@
           </div>
 
           <div class="form-group">
+            <label>Import from CSV</label>
+            <div class="csv-upload-section">
+              <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+              <button type="button" class="btn btn-secondary" id="csv-upload-btn">
+                Upload CSV File
+              </button>
+              <span id="csv-file-name" class="file-name-display"></span>
+            </div>
+            <p class="form-help-text">
+              Upload a Qualtrics CSV export with ranked-choice ballot data for multiple positions.
+            </p>
+          </div>
+
+          <div class="form-divider">
+            <span>OR Enter Manually</span>
+          </div>
+
+          <div class="form-group">
             <label for="candidates-input">Candidates (one per line)</label>
             <textarea id="candidates-input" rows="6"
                       placeholder="Alice Johnson&#10;Bob Smith&#10;Charlie Davis"></textarea>
