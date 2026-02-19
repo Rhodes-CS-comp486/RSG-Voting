@@ -2,6 +2,7 @@ let lastResult = null;
 let electionCount = 0;
 let parsedCandidates = [];
 let parsedBallots = [];
+let inputMode = 'upload'; // 'upload' | 'manual'
 
 function parseElectionFile(text) {
   const lines = text.split('\n').map(l => l.trim());
@@ -145,6 +146,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     showView('view-home');
   });
 
+  // --- Input mode toggle ---
+  document.getElementById('mode-upload-btn').addEventListener('click', () => {
+    inputMode = 'upload';
+    document.getElementById('mode-upload-btn').classList.add('active');
+    document.getElementById('mode-manual-btn').classList.remove('active');
+    document.getElementById('input-mode-upload').style.display = 'block';
+    document.getElementById('input-mode-manual').style.display = 'none';
+  });
+
+  document.getElementById('mode-manual-btn').addEventListener('click', () => {
+    inputMode = 'manual';
+    document.getElementById('mode-manual-btn').classList.add('active');
+    document.getElementById('mode-upload-btn').classList.remove('active');
+    document.getElementById('input-mode-manual').style.display = 'block';
+    document.getElementById('input-mode-upload').style.display = 'none';
+  });
+
   // Drop zone: drag events
   const dropZone = document.getElementById('drop-zone');
 
@@ -192,11 +210,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const title = document.getElementById('election-title').value.trim();
     const method = document.getElementById('voting-method').value;
-    const candidates = parsedCandidates;
-    const ballots = parsedBallots;
+
+    let candidates, ballots;
+
+    if (inputMode === 'manual') {
+      const candidatesRaw = document.getElementById('candidates-input').value.trim();
+      const ballotsRaw = document.getElementById('ballots-input').value.trim();
+      candidates = candidatesRaw.split('\n').map(c => c.trim()).filter(Boolean);
+      ballots = ballotsRaw.split('\n')
+        .map(line => line.split(',').map(c => c.trim()).filter(Boolean))
+        .filter(b => b.length > 0);
+    } else {
+      candidates = parsedCandidates;
+      ballots = parsedBallots;
+    }
 
     if (candidates.length === 0 || ballots.length === 0) {
-      errBox.textContent = 'Please upload a file with at least one candidate and one ballot.';
+      errBox.textContent = inputMode === 'manual'
+        ? 'Please enter at least one candidate and one ballot.'
+        : 'Please upload a file with at least one candidate and one ballot.';
       errBox.style.display = 'block';
       return;
     }
@@ -223,6 +255,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('new-election-btn').addEventListener('click', async () => {
     clearFile();
+    inputMode = 'upload';
+    document.getElementById('mode-upload-btn').classList.add('active');
+    document.getElementById('mode-manual-btn').classList.remove('active');
+    document.getElementById('input-mode-upload').style.display = 'block';
+    document.getElementById('input-mode-manual').style.display = 'none';
+    document.getElementById('candidates-input').value = '';
+    document.getElementById('ballots-input').value = '';
     showView('view-setup');
 
     const methods = await window.electronAPI.getVotingMethods();
