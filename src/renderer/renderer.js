@@ -1,10 +1,31 @@
 let lastResult = null;
 let electionCount = 0;
 
+const METHOD_DESCRIPTIONS = {
+  irv: 'Instant-Runoff Voting (IRV): Voters rank candidates by preference. If no candidate wins a majority of first-choice votes, the last-place candidate is eliminated and their votes transfer to each ballot\'s next choice. Repeats until a winner is found. For multiple seats, STV (Single Transferable Vote) is used.',
+  borda: 'Borda Count: Voters rank candidates, and each position earns points (1st choice gets the most, last gets the fewest). The candidate with the highest total points wins. For multiple seats, the top scorers fill each seat.',
+};
+
 function ordinalSuffix(n) {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+function populateMethodDropdown(methods) {
+  const select = document.getElementById('voting-method');
+  const tooltip = document.getElementById('method-tooltip-text');
+  select.innerHTML = '';
+  methods.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m.toUpperCase();
+    select.appendChild(opt);
+  });
+  tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
+  select.onchange = () => {
+    tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
+  };
 }
 
 // View switching — hides all sections, shows the one you want
@@ -33,14 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Populate the voting method dropdown
     const methods = await window.electronAPI.getVotingMethods();
-    const select = document.getElementById('voting-method');
-    select.innerHTML = '';
-    methods.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m.toUpperCase();
-      select.appendChild(opt);
-    });
+    populateMethodDropdown(methods);
   });
 
   document.getElementById('view-results-btn').addEventListener('click', () => {
@@ -109,14 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showView('view-setup');
 
     const methods = await window.electronAPI.getVotingMethods();
-    const select = document.getElementById('voting-method');
-    select.innerHTML = '';
-    methods.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m.toUpperCase();
-      select.appendChild(opt);
-    });
+    populateMethodDropdown(methods);
   });
 
   document.getElementById('results-back-btn').addEventListener('click', () => {
@@ -144,9 +151,14 @@ function displayResults(result) {
   document.getElementById('result-total-candidates').textContent = result.totalCandidates;
   document.getElementById('result-exhausted').textContent = result.exhaustedBallots;
 
-  // Rounds
+  // Rounds / breakdown
   const container = document.getElementById('rounds-container');
   container.innerHTML = '';
+
+  if (result.method === 'borda') {
+    displayBordaBreakdown(result, container);
+    return;
+  }
 
   result.rounds.forEach(round => {
     const card = document.createElement('div');
@@ -207,4 +219,48 @@ function displayResults(result) {
 
     container.appendChild(card);
   });
+}
+
+function displayBordaBreakdown(result, container) {
+  const scores = result.scores || result.results || {};
+  const rankDist = result.rankDistribution || {};
+  const winnerSet = new Set(result.winners);
+
+  // Sort candidates by score descending
+  const candidates = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+  const numPositions = candidates.length;
+
+  // Build header row
+  let headerCells = '<th>Candidate</th>';
+  for (let i = 0; i < numPositions; i++) {
+    headerCells += `<th>${i + 1}${ordinalSuffix(i + 1)}</th>`;
+  }
+  headerCells += '<th class="borda-total-pts-header">Total Points</th>';
+
+  // Build body rows
+  let bodyRows = '';
+  for (const candidate of candidates) {
+    const isWinner = winnerSet.has(candidate);
+    const dist = rankDist[candidate] || [];
+    let cells = `<td class="rank-table-candidate${isWinner ? ' borda-winner-label' : ''}">${candidate}${isWinner ? ' ★' : ''}</td>`;
+    for (let i = 0; i < numPositions; i++) {
+      cells += `<td>${dist[i] || 0}</td>`;
+    }
+    cells += `<td class="borda-total-pts">${scores[candidate]}</td>`;
+    const trClass = isWinner ? ' class="borda-winner-row"' : '';
+    bodyRows += `<tr${trClass}>${cells}</tr>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'round-card';
+  card.innerHTML = `
+    <h4>Borda Point Totals</h4>
+    <div class="rank-table-wrapper">
+      <table class="rank-table">
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>`;
+
+  container.appendChild(card);
 }
