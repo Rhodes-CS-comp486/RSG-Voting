@@ -558,6 +558,8 @@ main {
   white-space: pre;
   font-family: 'Courier New', monospace;
   line-height: 1.6;
+}
+
 /* Borda results breakdown */
 .borda-winner-label {
   color: #cc0000;
