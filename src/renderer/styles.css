@@ -677,3 +677,44 @@ footer p {
   margin: 8px 0;
   font-size: 16px;
 }
+
+/* ── Preferential Block Voting results ────────────────────────────────────── */
+
+/* Header cells for positions that count toward the total */
+.pbv-counted-header {
+  background: linear-gradient(135deg, #4a0000 0%, #cc0000 100%) !important;
+  position: relative;
+}
+
+/* Data cells in counted columns — subtle red tint */
+.pbv-counted-cell {
+  background: rgba(204, 0, 0, 0.06);
+}
+
+/* Total Counted column — matches Borda's Total Points style */
+.pbv-total-header {
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.pbv-total-votes {
+  font-weight: 700;
+  color: #cc0000;
+  border-left: 2px solid #dee2e6;
+}
+
+/* Winner row — green tint (mirrors borda-winner-row) */
+.pbv-winner-row {
+  background: #f0fff4;
+}
+
+.pbv-winner-label {
+  color: #28a745;
+  font-weight: 700;
+}
+
+/* Small note in the table heading */
+.pbv-counted-note {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #888;
+}
