@@ -170,7 +170,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('settings').addEventListener('click', () => {
-    alert('Settings feature coming soon!');
+    loadElectionHistory();
+    showView('view-settings');
   });
 
   // --- Setup view buttons ---
@@ -284,6 +285,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('stat-elections').textContent = electionCount;
       document.getElementById('stat-ballots').textContent = response.result.totalBallots;
       displayResults(response.result);
+
+      // Auto-save election to history
+      saveElectionToHistory({
+        title: config.title,
+        method: config.method,
+        seats: config.seats,
+        candidates: config.candidates,
+        totalBallots: response.result.totalBallots,
+        winner: response.result.winner,
+        result: response.result
+      });
+
       showView('view-results-page');
     } else {
       errBox.textContent = response.error;
@@ -310,6 +323,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('results-back-btn').addEventListener('click', () => {
     showView('view-home');
+  });
+
+  // --- Settings view buttons ---
+
+  document.getElementById('settings-back-btn').addEventListener('click', () => {
+    showView('view-home');
+  });
+
+  document.getElementById('tab-history').addEventListener('click', () => {
+    document.getElementById('tab-history').classList.add('active');
+    document.getElementById('tab-methods').classList.remove('active');
+    document.getElementById('tab-content-history').style.display = 'block';
+    document.getElementById('tab-content-methods').style.display = 'none';
+  });
+
+  document.getElementById('tab-methods').addEventListener('click', () => {
+    document.getElementById('tab-methods').classList.add('active');
+    document.getElementById('tab-history').classList.remove('active');
+    document.getElementById('tab-content-methods').style.display = 'block';
+    document.getElementById('tab-content-history').style.display = 'none';
+  });
+
+  document.getElementById('clear-history-btn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear all election history? This cannot be undone.')) {
+      localStorage.removeItem('electionHistory');
+      loadElectionHistory();
+    }
   });
 });
 
@@ -739,3 +779,120 @@ function displayBordaResults(result, container) {
 
   container.appendChild(card);
 }
+
+// ── Election History Management ────────────────────────────────────────
+
+function saveElectionToHistory(electionData) {
+  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
+  
+  const historyEntry = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    title: electionData.title || 'Untitled Election',
+    method: electionData.method,
+    seats: electionData.seats || 1,
+    candidates: electionData.candidates || [],
+    totalBallots: electionData.totalBallots || 0,
+    winner: electionData.winner,
+    result: electionData.result
+  };
+
+  history.unshift(historyEntry); // Add to beginning
+  
+  // Keep only last 50 elections
+  if (history.length > 50) {
+    history.splice(50);
+  }
+
+  localStorage.setItem('electionHistory', JSON.stringify(history));
+}
+
+function loadElectionHistory() {
+  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
+  renderElectionHistory(history);
+}
+
+function renderElectionHistory(history) {
+  const container = document.getElementById('election-history-list');
+  const noHistoryMsg = document.getElementById('no-history-message');
+
+  if (history.length === 0) {
+    container.innerHTML = '';
+    noHistoryMsg.style.display = 'block';
+    return;
+  }
+
+  noHistoryMsg.style.display = 'none';
+  container.innerHTML = '';
+
+  history.forEach(election => {
+    const card = createHistoryCard(election);
+    container.appendChild(card);
+  });
+}
+
+function createHistoryCard(election) {
+  const card = document.createElement('div');
+  card.className = 'history-card';
+  
+  const date = new Date(election.timestamp);
+  const formattedDate = date.toLocaleString();
+  
+  const methodName = getMethodDisplayName(election.method);
+  const winnerText = Array.isArray(election.winner) 
+    ? election.winner.join(', ') 
+    : election.winner || 'No winner determined';
+
+  card.innerHTML = `
+    <div class="history-card-header">
+      <h4 class="history-card-title">${escapeHtml(election.title)}</h4>
+      <span class="history-card-date">${formattedDate}</span>
+    </div>
+    <div class="history-card-meta">
+      <span class="history-method-badge">${methodName}</span>
+      <span>📊 ${election.totalBallots} ballots</span>
+      <span>👥 ${election.candidates.length} candidates</span>
+      ${election.seats > 1 ? `<span>🪑 ${election.seats} seats</span>` : ''}
+    </div>
+    <div class="history-card-winner">Winner: ${escapeHtml(winnerText)}</div>
+    <div class="history-card-details">
+      <strong>Candidates:</strong>
+      <div class="history-detail-row">${election.candidates.map(c => escapeHtml(c)).join(', ')}</div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    card.classList.toggle('expanded');
+  });
+
+  return card;
+}
+
+function getMethodDisplayName(method) {
+  const methodNames = {
+    'irv': 'Instant Runoff',
+    'borda': 'Borda Count',
+    'pbv': 'Preferential Block Voting'
+  };
+  return methodNames[method] || method.toUpperCase();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Update home page stats from history
+function updateStatsFromHistory() {
+  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
+  document.getElementById('stat-elections').textContent = history.length;
+  
+  if (history.length > 0) {
+    const totalBallots = history.reduce((sum, e) => sum + (e.totalBallots || 0), 0);
+    document.getElementById('stat-ballots').textContent = totalBallots;
+  }
+}
+
+// Call on app initialization
+updateStatsFromHistory();
