@@ -74,6 +74,7 @@ function clearFile() {
 const METHOD_DESCRIPTIONS = {
   irv: 'Instant-Runoff Voting (IRV): Voters rank candidates by preference. If no candidate wins a majority of first-choice votes, the last-place candidate is eliminated and their votes transfer to each ballot\'s next choice. Repeats until a winner is found. For multiple seats, STV (Single Transferable Vote) is used.',
   borda: 'Borda Count: Voters rank candidates, and each position earns points (1st choice gets the most, last gets the fewest). The candidate with the highest total points wins. For multiple seats, the top scorers fill each seat.',
+  'preferential-block': 'Preferential Block Voting: Voters rank candidates by preference. For N seats, each ballot counts its top N active preferences (1 vote each). The lowest-ranked candidate is eliminated each round and the next preference slides up to fill the gap, so each voter always has up to N active votes. Elimination continues until N candidates remain. With 1 seat, this is identical to standard IRV.',
 };
 
 function ordinalSuffix(n) {
@@ -302,6 +303,11 @@ function displayResults(result) {
     return;
   }
 
+  if (result.method === 'preferential-block') {
+    displayPreferentialBlockBreakdown(result, container);
+    return;
+  }
+
   result.rounds.forEach(round => {
     const card = document.createElement('div');
     card.className = 'round-card';
@@ -405,4 +411,85 @@ function displayBordaBreakdown(result, container) {
     </div>`;
 
   container.appendChild(card);
+}
+
+function displayPreferentialBlockBreakdown(result, container) {
+  const seats = result.seats;
+  const winnerSet = new Set(result.winners);
+
+  result.rounds.forEach((round, idx) => {
+    const card = document.createElement('div');
+    card.className = 'round-card';
+
+    const electedSet = new Set(round.elected || []);
+    const eliminatedSet = new Set(round.eliminated || []);
+    const isWinningRound = electedSet.size > 0;
+
+    let rankTableHTML = '';
+    if (round.rankDistribution) {
+      // Sort by total votes counted this round (descending)
+      const candidates = Object.keys(round.rankDistribution).sort((a, b) => {
+        return (round.tallies[b] || 0) - (round.tallies[a] || 0);
+      });
+      const numPositions = Math.max(...candidates.map(c => round.rankDistribution[c].length));
+
+      // Header — highlight the columns that count toward the total
+      let headerCells = '<th>Candidate</th>';
+      for (let i = 0; i < numPositions; i++) {
+        const counted = i < seats;
+        headerCells += `<th class="${counted ? 'pbv-counted-header' : ''}">${i + 1}${ordinalSuffix(i + 1)}</th>`;
+      }
+      headerCells += '<th class="pbv-total-header">Total Counted</th>';
+
+      // Body rows
+      let bodyRows = '';
+      for (const candidate of candidates) {
+        const counts = round.rankDistribution[candidate];
+        const isElected = electedSet.has(candidate) || (isWinningRound && winnerSet.has(candidate));
+        const isEliminated = eliminatedSet.has(candidate);
+        const totalCounted = round.tallies[candidate] || 0;
+
+        const nameClass = `rank-table-candidate${isElected ? ' pbv-winner-label' : ''}`;
+        let cells = `<td class="${nameClass}">${candidate}${isElected ? ' ★' : ''}</td>`;
+        for (let i = 0; i < numPositions; i++) {
+          const count = counts[i] || 0;
+          const counted = i < seats;
+          cells += `<td class="${counted ? 'rank-first pbv-counted-cell' : ''}">${count}</td>`;
+        }
+        cells += `<td class="pbv-total-votes">${totalCounted}</td>`;
+
+        let trClass = '';
+        if (isEliminated) trClass = ' class="eliminated-row"';
+        else if (isElected) trClass = ' class="pbv-winner-row"';
+        bodyRows += `<tr${trClass}>${cells}</tr>`;
+      }
+
+      const prefLabel = seats === 1 ? 'positions 1–1 counted' : `positions 1–${seats} counted`;
+      rankTableHTML = `
+        <div class="rank-table-wrapper">
+          <h5>Ranking Distribution &nbsp;<span class="pbv-counted-note">(highlighted columns count toward total)</span></h5>
+          <table class="rank-table">
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    let statusHTML = '';
+    if (isWinningRound) {
+      statusHTML = `<p class="winner-text">Elected: ${round.elected.join(', ')}</p>`;
+    } else if (eliminatedSet.size > 0) {
+      statusHTML = `<p class="eliminated-text">Eliminated: ${round.eliminated.join(', ')}</p>`;
+    } else if (result.isTie && idx === result.rounds.length - 1) {
+      statusHTML = `<p class="eliminated-text">Tie — remaining seat(s) could not be determined</p>`;
+    }
+
+    const thresholdText = round.threshold != null ? `Threshold: ${round.threshold}` : `top ${seats} preference${seats !== 1 ? 's' : ''} per ballot`;
+    card.innerHTML = `
+      <h4>Round ${round.roundNumber} (${thresholdText})</h4>
+      ${rankTableHTML}
+      ${statusHTML}`;
+
+    container.appendChild(card);
+  });
 }
