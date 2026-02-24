@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getVotingMethods: () => ipcRenderer.invoke('voting:get-methods'),
   runElection: (config) => ipcRenderer.invoke('voting:run-election', config),
   validateBallots: (data) => ipcRenderer.invoke('voting:validate-ballots', data),
+  parseCSV: (csvContent) => ipcRenderer.invoke('voting:parse-csv', csvContent),
 });
