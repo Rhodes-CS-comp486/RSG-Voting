@@ -658,13 +658,60 @@ footer p {
   color: white;
   padding: 15px 20px;
   border-radius: 8px;
-  margin: 20px 0 10px 0;
+  margin: 20px 0 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.2s ease;
+}
+
+.position-header:hover {
+  filter: brightness(1.1);
 }
 
 .position-header h3 {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+  color: white;
+}
+
+.position-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.position-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.position-winner-preview {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.collapse-chevron {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: transform 0.25s ease;
+  display: inline-block;
+}
+
+.position-header.expanded .collapse-chevron {
+  transform: rotate(180deg);
+}
+
+.position-rounds-wrapper {
+  margin-top: 10px;
+}
+
+#rounds-container {
+  margin-bottom: 30px;
 }
 
 .position-divider {

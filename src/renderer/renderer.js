@@ -377,7 +377,6 @@ function displayResults(result) {
   // Stats
   document.getElementById('result-total-ballots').textContent = result.totalBallots;
   document.getElementById('result-total-candidates').textContent = result.totalCandidates;
-  document.getElementById('result-exhausted').textContent = result.exhaustedBallots;
 
   // Rounds / breakdown
   const container = document.getElementById('rounds-container');
@@ -627,11 +626,9 @@ function displayMultiPositionResults(results) {
   // Aggregate stats
   const totalBallots = results.reduce((sum, r) => sum + r.totalBallots, 0);
   const totalCandidates = results.reduce((sum, r) => sum + r.totalCandidates, 0);
-  const totalExhausted = results.reduce((sum, r) => sum + r.exhaustedBallots, 0);
 
   document.getElementById('result-total-ballots').textContent = totalBallots;
   document.getElementById('result-total-candidates').textContent = totalCandidates;
-  document.getElementById('result-exhausted').textContent = totalExhausted;
 
   // Summary of winners per position
   const summaryEl = document.getElementById('result-summary');
@@ -650,20 +647,45 @@ function displayMultiPositionResults(results) {
   container.innerHTML = '';
 
   results.forEach((result, index) => {
-    // Position header
+    // Position header — clickable to expand/collapse rounds
     const header = document.createElement('div');
     header.className = 'position-header';
-    header.innerHTML = `<h3>${result.title}</h3>`;
+
+    const winnerPreview = result.winners && result.winners.length > 0
+      ? result.winners.join(', ')
+      : 'Tie — Not All Seats Filled';
+
+    header.innerHTML = `
+      <div class="position-header-inner">
+        <h3>${result.title}</h3>
+        <div class="position-header-right">
+          <span class="position-winner-preview">Winner: ${winnerPreview}</span>
+          <span class="collapse-chevron">&#9660;</span>
+        </div>
+      </div>`;
     container.appendChild(header);
 
-    // Render rounds using existing logic
+    // Rounds wrapper — hidden by default
+    const roundsWrapper = document.createElement('div');
+    roundsWrapper.className = 'position-rounds-wrapper';
+    roundsWrapper.style.display = 'none';
+    container.appendChild(roundsWrapper);
+
+    // Render rounds into the wrapper (not directly into container)
     if (result.method === 'irv') {
-      displayIRVRounds(result, container);
+      displayIRVRounds(result, roundsWrapper);
     } else if (result.method === 'borda') {
-      displayBordaResults(result, container);
+      displayBordaResults(result, roundsWrapper);
     } else if (result.method === 'preferential-block') {
-      displayPreferentialBlockBreakdown(result, container);
+      displayPreferentialBlockBreakdown(result, roundsWrapper);
     }
+
+    // Toggle rounds on header click
+    header.addEventListener('click', () => {
+      const isHidden = roundsWrapper.style.display === 'none';
+      roundsWrapper.style.display = isHidden ? 'block' : 'none';
+      header.classList.toggle('expanded', isHidden);
+    });
 
     // Add divider between positions (except after last)
     if (index < results.length - 1) {
