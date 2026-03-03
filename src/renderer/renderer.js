@@ -141,43 +141,15 @@ function showView(viewId) {
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('RSG Voting App initialized');
 
-  // Get app version from main process
-  try {
-    const version = await window.electronAPI.getAppVersion();
-    document.getElementById('app-version').textContent = version;
-  } catch (error) {
-    console.error('Failed to get app version:', error);
-    document.getElementById('app-version').textContent = 'Unknown';
-  }
-
-  // --- Home view buttons ---
-
-  document.getElementById('start-voting').addEventListener('click', async () => {
-    showView('view-setup');
-
-    // Populate the voting method dropdown
-    const methods = await window.electronAPI.getVotingMethods();
-    populateMethodDropdown(methods);
-  });
-
-  document.getElementById('view-results-btn').addEventListener('click', () => {
-    if (lastResult) {
-      displayResults(lastResult);
-      showView('view-results-page');
-    } else {
-      alert('No election results yet. Run an election first!');
-    }
-  });
-
-  document.getElementById('settings').addEventListener('click', () => {
-    loadElectionHistory();
-    showView('view-settings');
-  });
+  // Populate voting method dropdown on startup
+  const methods = await window.electronAPI.getVotingMethods();
+  populateMethodDropdown(methods);
 
   // --- Setup view buttons ---
 
-  document.getElementById('setup-back-btn').addEventListener('click', () => {
-    showView('view-home');
+  document.getElementById('setup-settings-btn').addEventListener('click', () => {
+    loadElectionHistory();
+    showView('view-settings');
   });
 
   // --- Input mode toggle ---
@@ -252,7 +224,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Single position election
-    const title = document.getElementById('election-title').value.trim();
     let candidates, ballots;
 
     if (inputMode === 'manual') {
@@ -275,15 +246,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const config = { title: title || 'Untitled Election', candidates, method, ballots, seats };
+    const config = { title: 'Election', candidates, method, ballots, seats };
 
     const response = await window.electronAPI.runElection(config);
 
     if (response.success) {
       lastResult = response.result;
       electionCount++;
-      document.getElementById('stat-elections').textContent = electionCount;
-      document.getElementById('stat-ballots').textContent = response.result.totalBallots;
       displayResults(response.result);
 
       // Auto-save election to history
@@ -322,13 +291,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('results-back-btn').addEventListener('click', () => {
-    showView('view-home');
+    showView('view-setup');
   });
 
   // --- Settings view buttons ---
 
   document.getElementById('settings-back-btn').addEventListener('click', () => {
-    showView('view-home');
+    showView('view-setup');
   });
 
   document.getElementById('tab-history').addEventListener('click', () => {
@@ -601,11 +570,7 @@ async function runMultiPositionElection(positions, method, seats) {
     }
   }
 
-  // Update stats
   electionCount += results.length;
-  const totalBallots = results.reduce((sum, r) => sum + r.totalBallots, 0);
-  document.getElementById('stat-elections').textContent = electionCount;
-  document.getElementById('stat-ballots').textContent = totalBallots;
 
   // Store for "View Results" button
   lastResult = { multiPosition: true, results: results };
@@ -905,16 +870,3 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Update home page stats from history
-function updateStatsFromHistory() {
-  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
-  document.getElementById('stat-elections').textContent = history.length;
-  
-  if (history.length > 0) {
-    const totalBallots = history.reduce((sum, e) => sum + (e.totalBallots || 0), 0);
-    document.getElementById('stat-ballots').textContent = totalBallots;
-  }
-}
-
-// Call on app initialization
-updateStatsFromHistory();
