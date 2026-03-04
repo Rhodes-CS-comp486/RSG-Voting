@@ -313,6 +313,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateMethodDropdown(methods);
   });
 
+  document.getElementById('export-pdf-btn').addEventListener('click', async () => {
+    // Expand all accordion bodies so they appear in the PDF
+    const bodies = document.querySelectorAll('.position-accordion-body');
+    const previousStates = Array.from(bodies).map(b => b.style.display);
+    bodies.forEach(b => { b.style.display = 'block'; });
+
+    const accordions = document.querySelectorAll('.position-accordion');
+    accordions.forEach(a => a.classList.add('expanded'));
+
+    const result = await window.electronAPI.exportPDF();
+
+    // Restore accordion states
+    bodies.forEach((b, i) => { b.style.display = previousStates[i]; });
+    accordions.forEach((a, i) => {
+      if (previousStates[i] === 'none') a.classList.remove('expanded');
+    });
+
+    if (!result.success && !result.canceled) {
+      alert('Failed to export PDF: ' + result.error);
+    }
+  });
+
   // --- Settings view buttons ---
 
   document.getElementById('settings-back-btn').addEventListener('click', () => {

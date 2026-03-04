@@ -1094,3 +1094,67 @@ footer p {
     transform: translateY(0);
   }
 }
+
+@media print {
+  /* Reset background so the page prints white */
+  body {
+    background: white !important;
+    min-height: unset;
+  }
+
+  /* Hide everything except the results view */
+  header,
+  nav,
+  .nav-btn,
+  #view-setup,
+  #view-settings,
+  .actions,
+  #upload-trigger-area,
+  #drop-zone-wrapper {
+    display: none !important;
+  }
+
+  /* Remove panel chrome for a clean printout */
+  .main-panel {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Make the results view always visible when printing */
+  #view-results {
+    display: block !important;
+  }
+
+  /* Expand all accordion bodies */
+  .position-accordion-body {
+    display: block !important;
+  }
+
+  /* Keep accordion headers readable */
+  .position-accordion-header {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+
+  /* Avoid breaking a round card across pages */
+  .round-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Keep each position accordion together when possible */
+  .position-accordion {
+    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  /* Hide the chevron since accordions are all expanded */
+  .accordion-chevron {
+    display: none !important;
+  }
+}
