@@ -4,6 +4,11 @@ let parsedCandidates = [];
 let parsedBallots = [];
 let inputMode = 'upload'; // 'upload' | 'manual'
 
+function capitalizeFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function parseElectionFile(text) {
   const lines = text.split('\n').map(l => l.trim());
   const candidates = [];
@@ -18,9 +23,9 @@ function parseElectionFile(text) {
     } else if (upper === 'BALLOTS') {
       section = 'ballots';
     } else if (section === 'candidates') {
-      candidates.push(line);
+      candidates.push(capitalizeFirst(line));
     } else if (section === 'ballots') {
-      const ballot = line.split(',').map(c => c.trim()).filter(Boolean);
+      const ballot = line.split(',').map(c => capitalizeFirst(c.trim())).filter(Boolean);
       if (ballot.length > 0) ballots.push(ballot);
     }
   }
@@ -38,8 +43,13 @@ async function handleFileLoad(file) {
       const parseResult = await window.electronAPI.parseCSV(text);
 
       if (parseResult.success && parseResult.positions.length > 0) {
-        // Store multi-position data globally
-        window.csvPositions = parseResult.positions;
+        // Store multi-position data globally, capitalizing all names
+        window.csvPositions = parseResult.positions.map(pos => ({
+          ...pos,
+          title: capitalizeFirst(pos.title),
+          candidates: pos.candidates.map(capitalizeFirst),
+          ballots: pos.ballots.map(ballot => ballot.map(capitalizeFirst))
+        }));
 
         // Update drop zone
         document.getElementById('drop-zone').classList.add('has-file');
@@ -101,6 +111,9 @@ function clearFile() {
   document.getElementById('drop-zone').classList.remove('has-file');
   document.getElementById('file-preview').style.display = 'none';
   document.getElementById('file-input').value = '';
+  // Reset upload trigger: show button, hide drop zone wrapper
+  document.getElementById('upload-trigger-area').style.display = 'block';
+  document.getElementById('drop-zone-wrapper').style.display = 'none';
 }
 
 const METHOD_DESCRIPTIONS = {
@@ -152,6 +165,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     showView('view-settings');
   });
 
+  // --- Upload trigger button ---
+  document.getElementById('reveal-dropzone-btn').addEventListener('click', () => {
+    document.getElementById('upload-trigger-area').style.display = 'none';
+    document.getElementById('drop-zone-wrapper').style.display = 'block';
+  });
+
   // --- Input mode toggle ---
   document.getElementById('mode-upload-btn').addEventListener('click', () => {
     inputMode = 'upload';
@@ -159,6 +178,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('mode-manual-btn').classList.remove('active');
     document.getElementById('input-mode-upload').style.display = 'block';
     document.getElementById('input-mode-manual').style.display = 'none';
+    // Reset upload trigger state
+    document.getElementById('upload-trigger-area').style.display = 'block';
+    document.getElementById('drop-zone-wrapper').style.display = 'none';
+    clearFile();
   });
 
   document.getElementById('mode-manual-btn').addEventListener('click', () => {
@@ -229,9 +252,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (inputMode === 'manual') {
       const candidatesRaw = document.getElementById('candidates-input').value.trim();
       const ballotsRaw = document.getElementById('ballots-input').value.trim();
-      candidates = candidatesRaw.split('\n').map(c => c.trim()).filter(Boolean);
+      candidates = candidatesRaw.split('\n').map(c => capitalizeFirst(c.trim())).filter(Boolean);
       ballots = ballotsRaw.split('\n')
-        .map(line => line.split(',').map(c => c.trim()).filter(Boolean))
+        .map(line => line.split(',').map(c => capitalizeFirst(c.trim())).filter(Boolean))
         .filter(b => b.length > 0);
     } else {
       candidates = parsedCandidates;
@@ -290,8 +313,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateMethodDropdown(methods);
   });
 
-  document.getElementById('results-back-btn').addEventListener('click', () => {
-    showView('view-setup');
+  document.getElementById('export-pdf-btn').addEventListener('click', async () => {
+    // Expand all accordion bodies so they appear in the PDF
+    const bodies = document.querySelectorAll('.position-accordion-body');
+    const previousStates = Array.from(bodies).map(b => b.style.display);
+    bodies.forEach(b => { b.style.display = 'block'; });
+
+    const accordions = document.querySelectorAll('.position-accordion');
+    accordions.forEach(a => a.classList.add('expanded'));
+
+    const result = await window.electronAPI.exportPDF();
+
+    // Restore accordion states
+    bodies.forEach((b, i) => { b.style.display = previousStates[i]; });
+    accordions.forEach((a, i) => {
+      if (previousStates[i] === 'none') a.classList.remove('expanded');
+    });
+
+    if (!result.success && !result.canceled) {
+      alert('Failed to export PDF: ' + result.error);
+    }
   });
 
   // --- Settings view buttons ---
@@ -366,6 +407,7 @@ function displayResults(result) {
     card.className = 'round-card';
 
     const eliminatedSet = new Set(round.eliminated || []);
+    const electedSet = new Set(round.elected || []);
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
@@ -384,7 +426,9 @@ function displayResults(result) {
       let bodyRows = '';
       for (const candidate of candidates) {
         const counts = round.rankDistribution[candidate];
-        let cells = `<td class="rank-table-candidate">${candidate}</td>`;
+        const isElected = electedSet.has(candidate);
+        const crownHTML = isElected ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+        let cells = `<td class="rank-table-candidate${isElected ? ' borda-winner-label' : ''}">${candidate}${crownHTML}</td>`;
         for (let i = 0; i < numPositions; i++) {
           const count = counts[i] || 0;
           const isFirst = i === 0;
@@ -443,7 +487,8 @@ function displayBordaBreakdown(result, container) {
   for (const candidate of candidates) {
     const isWinner = winnerSet.has(candidate);
     const dist = rankDist[candidate] || [];
-    let cells = `<td class="rank-table-candidate${isWinner ? ' borda-winner-label' : ''}">${candidate}${isWinner ? ' ★' : ''}</td>`;
+    const crownHTML = isWinner ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+    let cells = `<td class="rank-table-candidate${isWinner ? ' borda-winner-label' : ''}">${candidate}${crownHTML}</td>`;
     for (let i = 0; i < numPositions; i++) {
       cells += `<td>${dist[i] || 0}</td>`;
     }
@@ -503,7 +548,8 @@ function displayPreferentialBlockBreakdown(result, container) {
         const totalCounted = round.tallies[candidate] || 0;
 
         const nameClass = `rank-table-candidate${isElected ? ' pbv-winner-label' : ''}`;
-        let cells = `<td class="${nameClass}">${candidate}${isElected ? ' ★' : ''}</td>`;
+        const crownHTML = isElected ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+        let cells = `<td class="${nameClass}">${candidate}${crownHTML}</td>`;
         for (let i = 0; i < numPositions; i++) {
           const count = counts[i] || 0;
           const counted = i < seats;
@@ -612,52 +658,54 @@ function displayMultiPositionResults(results) {
   container.innerHTML = '';
 
   results.forEach((result, index) => {
-    // Position header — clickable to expand/collapse rounds
-    const header = document.createElement('div');
-    header.className = 'position-header';
-
     const winnerPreview = result.winners && result.winners.length > 0
       ? result.winners.join(', ')
       : 'Tie — Not All Seats Filled';
 
-    header.innerHTML = `
-      <div class="position-header-inner">
-        <h3>${result.title}</h3>
-        <div class="position-header-right">
-          <span class="position-winner-preview">Winner: ${winnerPreview}</span>
-          <span class="collapse-chevron">&#9660;</span>
+    const title = result.title
+      ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
+      : result.title;
+
+    // Accordion card
+    const accordion = document.createElement('div');
+    accordion.className = 'position-accordion';
+    accordion.innerHTML = `
+      <div class="position-accordion-header">
+        <div class="position-accordion-left">
+          <span class="position-accordion-index">${index + 1}</span>
+          <span class="position-accordion-title">${title}</span>
+        </div>
+        <div class="position-accordion-right">
+          <span class="position-winner-badge">${winnerPreview}</span>
+          <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
       </div>`;
-    container.appendChild(header);
 
-    // Rounds wrapper — hidden by default
-    const roundsWrapper = document.createElement('div');
-    roundsWrapper.className = 'position-rounds-wrapper';
-    roundsWrapper.style.display = 'none';
-    container.appendChild(roundsWrapper);
+    // Body — hidden by default
+    const body = document.createElement('div');
+    body.className = 'position-accordion-body';
+    body.style.display = 'none';
+    accordion.appendChild(body);
 
-    // Render rounds into the wrapper (not directly into container)
+    // Render rounds into the body
     if (result.method === 'irv') {
-      displayIRVRounds(result, roundsWrapper);
+      displayIRVRounds(result, body);
     } else if (result.method === 'borda') {
-      displayBordaResults(result, roundsWrapper);
+      displayBordaResults(result, body);
     } else if (result.method === 'preferential-block') {
-      displayPreferentialBlockBreakdown(result, roundsWrapper);
+      displayPreferentialBlockBreakdown(result, body);
     }
 
-    // Toggle rounds on header click
-    header.addEventListener('click', () => {
-      const isHidden = roundsWrapper.style.display === 'none';
-      roundsWrapper.style.display = isHidden ? 'block' : 'none';
-      header.classList.toggle('expanded', isHidden);
+    // Toggle on header click
+    accordion.querySelector('.position-accordion-header').addEventListener('click', () => {
+      const isHidden = body.style.display === 'none';
+      body.style.display = isHidden ? 'block' : 'none';
+      accordion.classList.toggle('expanded', isHidden);
     });
 
-    // Add divider between positions (except after last)
-    if (index < results.length - 1) {
-      const divider = document.createElement('hr');
-      divider.className = 'position-divider';
-      container.appendChild(divider);
-    }
+    container.appendChild(accordion);
   });
 }
 
@@ -668,6 +716,7 @@ function displayIRVRounds(result, container) {
     card.className = 'round-card';
 
     const eliminatedSet = new Set(round.eliminated || []);
+    const electedSet = new Set(round.elected || []);
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
@@ -683,7 +732,9 @@ function displayIRVRounds(result, container) {
       let bodyRows = '';
       for (const candidate of candidates) {
         const counts = round.rankDistribution[candidate];
-        let cells = `<td class="rank-table-candidate">${candidate}</td>`;
+        const isElected = electedSet.has(candidate);
+        const crownHTML = isElected ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+        let cells = `<td class="rank-table-candidate${isElected ? ' borda-winner-label' : ''}">${candidate}${crownHTML}</td>`;
         let total = 0;
         for (let i = 0; i < numPositions; i++) {
           const count = counts[i] || 0;
@@ -744,7 +795,8 @@ function displayBordaResults(result, container) {
   for (const [candidate, ] of sortedEntries) {
     const dist = distribution[candidate] || [];
     const isWinner = winnerSet.has(candidate);
-    let cells = `<td class="rank-table-candidate ${isWinner ? 'borda-winner' : ''}">${candidate}</td>`;
+    const crownHTML = isWinner ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+    let cells = `<td class="rank-table-candidate ${isWinner ? 'borda-winner' : ''}">${candidate}${crownHTML}</td>`;
     for (let i = 1; i <= numCandidates; i++) {
       cells += `<td>${dist[i] || 0}</td>`;
     }

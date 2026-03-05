@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { createEngine } = require('./voting/index');
 const { parseQualtricsCSV } = require('./utils/csvParser');
 
@@ -93,5 +94,25 @@ ipcMain.handle('voting:parse-csv', (event, csvContent) => {
     return parseQualtricsCSV(csvContent);
   } catch (error) {
     return { success: false, positions: null, error: error.message };
+  }
+});
+
+ipcMain.handle('results:export-pdf', async (event) => {
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save Election Results as PDF',
+    defaultPath: 'election-results.pdf',
+    filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+  });
+  if (canceled || !filePath) return { success: false, canceled: true };
+  try {
+    const pdfData = await event.sender.printToPDF({
+      printBackground: true,
+      pageSize: 'A4',
+      margins: { marginType: 'custom', top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }
+    });
+    fs.writeFileSync(filePath, pdfData);
+    return { success: true, filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });

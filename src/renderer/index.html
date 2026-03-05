@@ -47,18 +47,31 @@
 
             <!-- Upload mode -->
             <div id="input-mode-upload">
-              <div class="drop-zone" id="drop-zone">
-                <div class="drop-zone-content">
-                  <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <div id="upload-trigger-area">
+                <button class="upload-trigger-btn" id="reveal-dropzone-btn" type="button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
-                  <p class="drop-zone-text">Drag &amp; drop your CSV file here</p>
-                  <p class="drop-zone-subtext">or</p>
-                  <button class="btn btn-secondary" id="browse-btn" type="button">Browse Files</button>
-                  <input type="file" id="file-input" accept=".csv,.txt" style="display: none;">
-                  <p class="drop-zone-hint">Accepts .csv or .txt files</p>
+                  Upload CSV File
+                </button>
+                <input type="file" id="file-input" accept=".csv,.txt" style="display: none;">
+              </div>
+
+              <div id="drop-zone-wrapper" style="display: none;">
+                <div class="drop-zone" id="drop-zone">
+                  <div class="drop-zone-content">
+                    <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p class="drop-zone-text">Drag &amp; drop your CSV file here</p>
+                    <p class="drop-zone-subtext">or</p>
+                    <button class="btn btn-secondary" id="browse-btn" type="button">Browse Files</button>
+                    <p class="drop-zone-hint">Accepts .csv or .txt files</p>
+                  </div>
                 </div>
               </div>
 
@@ -120,25 +133,19 @@ Charlie Davis, Alice Johnson, Bob Smith</pre>
 
           <div id="result-summary" class="status-card"></div>
 
-          <div id="result-stats" class="info-section">
-            <h4>Election Stats</h4>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h5>Total Ballots</h5>
-                <p class="stat-number" id="result-total-ballots">0</p>
-              </div>
-              <div class="stat-card">
-                <h5>Candidates</h5>
-                <p class="stat-number" id="result-total-candidates">0</p>
-              </div>
-            </div>
+          <div id="result-stats" class="result-meta-bar">
+            <span class="result-meta-chip">Ballots: <strong id="result-total-ballots">0</strong></span>
+            <span class="result-meta-chip">Candidates: <strong id="result-total-candidates">0</strong></span>
           </div>
 
           <div id="rounds-container"></div>
 
           <div class="actions">
             <button class="btn btn-primary" id="new-election-btn">New Election</button>
-            <button class="btn btn-secondary" id="results-back-btn">New Election</button>
+            <button class="btn btn-secondary" id="export-pdf-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF
+            </button>
           </div>
         </div>
       </section>
