@@ -23,12 +23,38 @@ body {
 
 header {
   background: white;
-  padding: 20px 30px;
+  padding: 16px 30px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   text-align: center;
   margin-bottom: 24px;
   border-bottom: 3px solid #cc0000;
+}
+
+.header-content {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.header-content .header-logo:first-child {
+  justify-self: center;
+}
+
+.header-content .header-logo:last-child {
+  justify-self: center;
+}
+
+.header-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.header-text {
+  text-align: center;
+  flex: 1;
 }
 
 header h1 {
