@@ -31,8 +31,11 @@ function parseQualtricsCSV(csvContent) {
 
       // Extract position name and candidate ID from header
       // Format: "Please Rank... Vice President. - VP 1"
-      const match = header.match(/Please.*?(?:for|of)\s+(?:the\s+)?(.+?)\.\s*-\s*(.+)$/);
-      if (!match) return;
+      const match = header.match(/Please.*?(?:for|of)\s+(?:the\s+)?(.+?)\.?\s*-\s*(.+)$/);
+      if (!match) {
+        console.log('[CSV Parser] Header did not match pattern:', header);
+        return;
+      }
 
       const [, positionName, candidateId] = match;
       const cleanPosition = positionName.trim();
@@ -49,6 +52,7 @@ function parseQualtricsCSV(csvContent) {
     });
 
     // Validate that we found at least one position
+    console.log('[CSV Parser] Positions found:', Object.keys(positionColumns));
     if (Object.keys(positionColumns).length === 0) {
       return { success: false, positions: null, error: 'No valid position columns found in CSV.' };
     }
