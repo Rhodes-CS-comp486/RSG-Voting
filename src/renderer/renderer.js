@@ -3,6 +3,7 @@ let electionCount = 0;
 let parsedCandidates = [];
 let parsedBallots = [];
 let inputMode = 'upload'; // 'upload' | 'manual'
+let loadedPositions = []; // positions accumulated from all uploaded files
 
 function capitalizeFirst(str) {
   if (!str) return str;
@@ -37,37 +38,21 @@ async function handleFileLoad(file) {
   const reader = new FileReader();
   reader.onload = async (e) => {
     const text = e.target.result;
+    const titleFromFile = file.name.replace(/\.[^/.]+$/, ''); // strip extension for default title
 
     // Try Qualtrics CSV format first (check for "Please" in headers)
     if (text.includes('Please Rank') || text.includes('Please Vote')) {
       const parseResult = await window.electronAPI.parseCSV(text);
 
       if (parseResult.success && parseResult.positions.length > 0) {
-        // Store multi-position data globally, capitalizing all names
-        window.csvPositions = parseResult.positions.map(pos => ({
-          ...pos,
+        const positions = parseResult.positions.map(pos => ({
           title: capitalizeFirst(pos.title),
           candidates: pos.candidates.map(capitalizeFirst),
-          ballots: pos.ballots.map(ballot => ballot.map(capitalizeFirst))
+          ballots: pos.ballots.map(ballot => ballot.map(capitalizeFirst)),
+          fileName: file.name
         }));
-
-        // Update drop zone
-        document.getElementById('drop-zone').classList.add('has-file');
-
-        // Show multi-position preview
-        const preview = document.getElementById('file-preview');
-        document.getElementById('file-name-display').textContent = file.name;
-        document.getElementById('preview-candidates-count').textContent =
-          `${parseResult.positions.length} position${parseResult.positions.length !== 1 ? 's' : ''}`;
-        document.getElementById('preview-ballots-count').textContent =
-          `Multi-position election`;
-
-        const list = document.getElementById('preview-candidates-list');
-        list.innerHTML = parseResult.positions.map(p =>
-          `<div><strong>${p.title}</strong>: ${p.candidates.length} candidates, ${p.ballots.length} ballots</div>`
-        ).join('');
-
-        preview.style.display = 'block';
+        loadedPositions.push(...positions);
+        renderFileList();
         return;
       }
     }
@@ -77,37 +62,63 @@ async function handleFileLoad(file) {
 
     if (candidates.length === 0 && ballots.length === 0) {
       const errBox = document.getElementById('validation-errors');
-      errBox.textContent = 'Could not parse any candidates or ballots from the file. Check the file format.';
+      errBox.textContent = `Could not parse any candidates or ballots from "${file.name}". Check the file format.`;
       errBox.style.display = 'block';
       return;
     }
 
-    parsedCandidates = candidates;
-    parsedBallots = ballots;
-    window.csvPositions = null; // Clear multi-position data
-
-    // Update drop zone appearance
-    document.getElementById('drop-zone').classList.add('has-file');
-
-    // Show preview
-    const preview = document.getElementById('file-preview');
-    document.getElementById('file-name-display').textContent = file.name;
-    document.getElementById('preview-candidates-count').textContent =
-      `${candidates.length} candidate${candidates.length !== 1 ? 's' : ''}`;
-    document.getElementById('preview-ballots-count').textContent =
-      `${ballots.length} ballot${ballots.length !== 1 ? 's' : ''}`;
-
-    const list = document.getElementById('preview-candidates-list');
-    list.innerHTML = candidates.map(c => `<div>${c}</div>`).join('');
-
-    preview.style.display = 'block';
+    loadedPositions.push({
+      title: capitalizeFirst(titleFromFile),
+      candidates,
+      ballots,
+      fileName: file.name
+    });
+    renderFileList();
   };
   reader.readAsText(file);
+}
+
+function renderFileList() {
+  const preview = document.getElementById('file-preview');
+  const fileList = document.getElementById('file-list');
+  const countEl = document.getElementById('multi-file-count');
+
+  if (loadedPositions.length === 0) {
+    preview.style.display = 'none';
+    document.getElementById('drop-zone').classList.remove('has-file');
+    return;
+  }
+
+  preview.style.display = 'block';
+  document.getElementById('drop-zone').classList.add('has-file');
+
+  const total = loadedPositions.length;
+  countEl.textContent = `${total} position${total !== 1 ? 's' : ''} loaded`;
+
+  fileList.innerHTML = '';
+  loadedPositions.forEach((pos, index) => {
+    const item = document.createElement('div');
+    item.className = 'file-list-item';
+    item.innerHTML = `
+      <div class="file-list-item-info">
+        <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
+        <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
+        <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
+      </div>
+      <button class="btn-remove-file" type="button" title="Remove">✕</button>
+    `;
+    item.querySelector('.btn-remove-file').addEventListener('click', () => {
+      loadedPositions.splice(index, 1);
+      renderFileList();
+    });
+    fileList.appendChild(item);
+  });
 }
 
 function clearFile() {
   parsedCandidates = [];
   parsedBallots = [];
+  loadedPositions = [];
   document.getElementById('drop-zone').classList.remove('has-file');
   document.getElementById('file-preview').style.display = 'none';
   document.getElementById('file-input').value = '';
@@ -207,8 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileLoad(file);
+    Array.from(e.dataTransfer.files).forEach(file => handleFileLoad(file));
   });
 
   // Drop zone: click to browse
@@ -224,8 +234,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) handleFileLoad(file);
+    Array.from(e.target.files).forEach(file => handleFileLoad(file));
+    e.target.value = ''; // reset so the same file can be re-selected if cleared
+  });
+
+  document.getElementById('add-more-files-btn').addEventListener('click', () => {
+    document.getElementById('file-input').click();
   });
 
   document.getElementById('clear-file-btn').addEventListener('click', (e) => {
@@ -240,45 +254,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     const method = document.getElementById('voting-method').value;
     const seats = parseInt(document.getElementById('seats-input').value, 10) || 1;
 
-    // Check for multi-position Qualtrics CSV data
-    if (window.csvPositions && window.csvPositions.length > 0) {
-      await runMultiPositionElection(window.csvPositions, method, seats);
+    // --- Upload mode: use loadedPositions ---
+    if (inputMode === 'upload') {
+      if (loadedPositions.length === 0) {
+        errBox.textContent = 'Please upload at least one file.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      if (loadedPositions.length > 1) {
+        await runMultiPositionElection(loadedPositions, method, seats);
+        return;
+      }
+
+      // Single position from file
+      const pos = loadedPositions[0];
+      const config = { title: pos.title, candidates: pos.candidates, method, ballots: pos.ballots, seats };
+      const response = await window.electronAPI.runElection(config);
+
+      if (response.success) {
+        lastResult = response.result;
+        electionCount++;
+        displayResults(response.result);
+        saveElectionToHistory({
+          title: config.title,
+          method: config.method,
+          seats: config.seats,
+          candidates: config.candidates,
+          totalBallots: response.result.totalBallots,
+          winner: response.result.winner,
+          result: response.result
+        });
+        showView('view-results-page');
+      } else {
+        errBox.textContent = response.error;
+        errBox.style.display = 'block';
+      }
       return;
     }
 
-    // Single position election
-    let candidates, ballots;
-
-    if (inputMode === 'manual') {
-      const candidatesRaw = document.getElementById('candidates-input').value.trim();
-      const ballotsRaw = document.getElementById('ballots-input').value.trim();
-      candidates = candidatesRaw.split('\n').map(c => capitalizeFirst(c.trim())).filter(Boolean);
-      ballots = ballotsRaw.split('\n')
-        .map(line => line.split(',').map(c => capitalizeFirst(c.trim())).filter(Boolean))
-        .filter(b => b.length > 0);
-    } else {
-      candidates = parsedCandidates;
-      ballots = parsedBallots;
-    }
+    // --- Manual entry mode ---
+    const candidatesRaw = document.getElementById('candidates-input').value.trim();
+    const ballotsRaw = document.getElementById('ballots-input').value.trim();
+    const candidates = candidatesRaw.split('\n').map(c => capitalizeFirst(c.trim())).filter(Boolean);
+    const ballots = ballotsRaw.split('\n')
+      .map(line => line.split(',').map(c => capitalizeFirst(c.trim())).filter(Boolean))
+      .filter(b => b.length > 0);
 
     if (candidates.length === 0 || ballots.length === 0) {
-      errBox.textContent = inputMode === 'manual'
-        ? 'Please enter at least one candidate and one ballot.'
-        : 'Please upload a file with at least one candidate and one ballot.';
+      errBox.textContent = 'Please enter at least one candidate and one ballot.';
       errBox.style.display = 'block';
       return;
     }
 
     const config = { title: 'Election', candidates, method, ballots, seats };
-
     const response = await window.electronAPI.runElection(config);
 
     if (response.success) {
       lastResult = response.result;
       electionCount++;
       displayResults(response.result);
-
-      // Auto-save election to history
       saveElectionToHistory({
         title: config.title,
         method: config.method,
@@ -288,7 +323,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         winner: response.result.winner,
         result: response.result
       });
-
       showView('view-results-page');
     } else {
       errBox.textContent = response.error;
@@ -625,8 +659,6 @@ async function runMultiPositionElection(positions, method, seats) {
   displayMultiPositionResults(results);
   showView('view-results-page');
 
-  // Clear CSV data
-  window.csvPositions = null;
   clearFile();
 }
 

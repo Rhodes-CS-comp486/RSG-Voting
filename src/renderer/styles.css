@@ -542,6 +542,79 @@ main {
   padding: 16px 20px;
 }
 
+.multi-file-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.multi-file-count {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.multi-file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.file-list-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-list-item-title {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.file-list-item-meta {
+  font-size: 0.82rem;
+  color: #555;
+}
+
+.file-list-item-source {
+  font-size: 0.78rem;
+  color: #999;
+}
+
+.btn-remove-file {
+  background: none;
+  border: none;
+  color: #cc0000;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.btn-remove-file:hover {
+  background: #fff0f0;
+}
+
 .file-preview-header {
   display: flex;
   justify-content: space-between;

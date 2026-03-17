@@ -62,7 +62,7 @@
                   </svg>
                   Upload CSV File
                 </button>
-                <input type="file" id="file-input" accept=".csv,.txt" style="display: none;">
+                <input type="file" id="file-input" accept=".csv,.txt" multiple style="display: none;">
               </div>
 
               <div id="drop-zone-wrapper" style="display: none;">
@@ -73,24 +73,23 @@
                       <polyline points="17 8 12 3 7 8"/>
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    <p class="drop-zone-text">Drag &amp; drop your CSV file here</p>
+                    <p class="drop-zone-text">Drag &amp; drop CSV files here</p>
                     <p class="drop-zone-subtext">or</p>
                     <button class="btn btn-secondary" id="browse-btn" type="button">Browse Files</button>
-                    <p class="drop-zone-hint">Accepts .csv or .txt files</p>
+                    <p class="drop-zone-hint">Accepts .csv or .txt — select multiple files at once</p>
                   </div>
                 </div>
               </div>
 
               <div id="file-preview" class="file-preview" style="display: none;">
-                <div class="file-preview-header">
-                  <span class="file-preview-name" id="file-name-display"></span>
-                  <button class="btn-clear" id="clear-file-btn" type="button">Clear</button>
+                <div class="multi-file-header">
+                  <span class="multi-file-count" id="multi-file-count"></span>
+                  <div class="multi-file-actions">
+                    <button class="btn btn-secondary btn-small" id="add-more-files-btn" type="button">+ Add Files</button>
+                    <button class="btn-clear" id="clear-file-btn" type="button">Clear All</button>
+                  </div>
                 </div>
-                <div class="preview-stats">
-                  <span class="preview-stat" id="preview-candidates-count"></span>
-                  <span class="preview-stat" id="preview-ballots-count"></span>
-                </div>
-                <div id="preview-candidates-list" class="preview-list"></div>
+                <div id="file-list" class="file-list"></div>
               </div>
 
               <div class="file-format-hint">
