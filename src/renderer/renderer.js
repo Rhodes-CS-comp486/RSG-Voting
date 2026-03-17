@@ -177,11 +177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // --- Setup view buttons ---
 
-  document.getElementById('setup-settings-btn').addEventListener('click', () => {
-    loadElectionHistory();
-    showView('view-settings');
-  });
-
   // --- Upload trigger button ---
   document.getElementById('reveal-dropzone-btn').addEventListener('click', () => {
     document.getElementById('upload-trigger-area').style.display = 'none';
@@ -282,15 +277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         lastResult = response.result;
         electionCount++;
         displayResults(response.result);
-        saveElectionToHistory({
-          title: config.title,
-          method: config.method,
-          seats: config.seats,
-          candidates: config.candidates,
-          totalBallots: response.result.totalBallots,
-          winner: response.result.winner,
-          result: response.result
-        });
         showView('view-results-page');
       } else {
         errBox.textContent = response.error;
@@ -320,15 +306,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       lastResult = response.result;
       electionCount++;
       displayResults(response.result);
-      saveElectionToHistory({
-        title: config.title,
-        method: config.method,
-        seats: config.seats,
-        candidates: config.candidates,
-        totalBallots: response.result.totalBallots,
-        winner: response.result.winner,
-        result: response.result
-      });
       showView('view-results-page');
     } else {
       errBox.textContent = response.error;
@@ -375,32 +352,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- Settings view buttons ---
-
-  document.getElementById('settings-back-btn').addEventListener('click', () => {
-    showView('view-setup');
-  });
-
-  document.getElementById('tab-history').addEventListener('click', () => {
-    document.getElementById('tab-history').classList.add('active');
-    document.getElementById('tab-methods').classList.remove('active');
-    document.getElementById('tab-content-history').style.display = 'block';
-    document.getElementById('tab-content-methods').style.display = 'none';
-  });
-
-  document.getElementById('tab-methods').addEventListener('click', () => {
-    document.getElementById('tab-methods').classList.add('active');
-    document.getElementById('tab-history').classList.remove('active');
-    document.getElementById('tab-content-methods').style.display = 'block';
-    document.getElementById('tab-content-history').style.display = 'none';
-  });
-
-  document.getElementById('clear-history-btn').addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear all election history? This cannot be undone.')) {
-      localStorage.removeItem('electionHistory');
-      loadElectionHistory();
-    }
-  });
 });
 
 function displayResults(result) {
@@ -883,102 +834,6 @@ function displayBordaResults(result, container) {
   container.appendChild(card);
 }
 
-// ── Election History Management ────────────────────────────────────────
-
-function saveElectionToHistory(electionData) {
-  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
-  
-  const historyEntry = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-    title: electionData.title || 'Untitled Election',
-    method: electionData.method,
-    seats: electionData.seats || 1,
-    candidates: electionData.candidates || [],
-    totalBallots: electionData.totalBallots || 0,
-    winner: electionData.winner,
-    result: electionData.result
-  };
-
-  history.unshift(historyEntry); // Add to beginning
-  
-  // Keep only last 50 elections
-  if (history.length > 50) {
-    history.splice(50);
-  }
-
-  localStorage.setItem('electionHistory', JSON.stringify(history));
-}
-
-function loadElectionHistory() {
-  const history = JSON.parse(localStorage.getItem('electionHistory') || '[]');
-  renderElectionHistory(history);
-}
-
-function renderElectionHistory(history) {
-  const container = document.getElementById('election-history-list');
-  const noHistoryMsg = document.getElementById('no-history-message');
-
-  if (history.length === 0) {
-    container.innerHTML = '';
-    noHistoryMsg.style.display = 'block';
-    return;
-  }
-
-  noHistoryMsg.style.display = 'none';
-  container.innerHTML = '';
-
-  history.forEach(election => {
-    const card = createHistoryCard(election);
-    container.appendChild(card);
-  });
-}
-
-function createHistoryCard(election) {
-  const card = document.createElement('div');
-  card.className = 'history-card';
-  
-  const date = new Date(election.timestamp);
-  const formattedDate = date.toLocaleString();
-  
-  const methodName = getMethodDisplayName(election.method);
-  const winnerText = Array.isArray(election.winner) 
-    ? election.winner.join(', ') 
-    : election.winner || 'No winner determined';
-
-  card.innerHTML = `
-    <div class="history-card-header">
-      <h4 class="history-card-title">${escapeHtml(election.title)}</h4>
-      <span class="history-card-date">${formattedDate}</span>
-    </div>
-    <div class="history-card-meta">
-      <span class="history-method-badge">${methodName}</span>
-      <span>📊 ${election.totalBallots} ballots</span>
-      <span>👥 ${election.candidates.length} candidates</span>
-      ${election.seats > 1 ? `<span>🪑 ${election.seats} seats</span>` : ''}
-    </div>
-    <div class="history-card-winner">Winner: ${escapeHtml(winnerText)}</div>
-    <div class="history-card-details">
-      <strong>Candidates:</strong>
-      <div class="history-detail-row">${election.candidates.map(c => escapeHtml(c)).join(', ')}</div>
-    </div>
-  `;
-
-  card.addEventListener('click', () => {
-    card.classList.toggle('expanded');
-  });
-
-  return card;
-}
-
-function getMethodDisplayName(method) {
-  const methodNames = {
-    'irv': 'Instant Runoff',
-    'borda': 'Borda Count',
-    'pbv': 'Preferential Block Voting'
-  };
-  return methodNames[method] || method.toUpperCase();
-}
 
 function escapeHtml(text) {
   const div = document.createElement('div');
