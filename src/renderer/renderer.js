@@ -134,9 +134,8 @@ const METHOD_DESCRIPTIONS = {
 };
 
 const METHOD_DISPLAY_NAMES = {
-  irv: 'Ranked Choice (Instant-Runoff)',
-  borda: 'Points-Based Ranking (Borda Count)',
-  'preferential-block': 'Multi-Seat Ranked Choice (Preferential Block)',
+  irv: 'Ranked-Choice Voting',
+  borda: 'Ranked Point System',
 };
 
 function ordinalSuffix(n) {
@@ -144,11 +143,6 @@ function ordinalSuffix(n) {
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
 }
-
-const METHOD_DISPLAY_NAMES = {
-  irv: 'Ranked-Choice Voting',
-  borda: 'Ranked Point System',
-};
 
 function populateMethodDropdown(methods) {
   const select = document.getElementById('voting-method');
@@ -162,12 +156,6 @@ function populateMethodDropdown(methods) {
       opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
       select.appendChild(opt);
     });
-  methods.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m;
-    opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
-    select.appendChild(opt);
-  });
   tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
   select.onchange = () => {
     tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
