@@ -133,6 +133,12 @@ const METHOD_DESCRIPTIONS = {
   'preferential-block': 'Preferential Block Voting: Voters rank candidates by preference. For N seats, each ballot counts its top N active preferences (1 vote each). The lowest-ranked candidate is eliminated each round and the next preference slides up to fill the gap, so each voter always has up to N active votes. Elimination continues until N candidates remain. With 1 seat, this is identical to standard IRV.',
 };
 
+const METHOD_DISPLAY_NAMES = {
+  irv: 'Ranked Choice (Instant-Runoff)',
+  borda: 'Points-Based Ranking (Borda Count)',
+  'preferential-block': 'Multi-Seat Ranked Choice (Preferential Block)',
+};
+
 function ordinalSuffix(n) {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
@@ -156,6 +162,12 @@ function populateMethodDropdown(methods) {
       opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
       select.appendChild(opt);
     });
+  methods.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
+    select.appendChild(opt);
+  });
   tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
   select.onchange = () => {
     tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
