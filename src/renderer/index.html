@@ -126,7 +126,6 @@ Charlie Davis, Alice Johnson, Bob Smith</pre>
 
           <div class="actions">
             <button class="btn btn-primary" id="run-election-btn">Run Election</button>
-            <button class="btn btn-secondary" id="setup-settings-btn">Settings</button>
           </div>
         </div>
       </section>
@@ -155,58 +154,7 @@ Charlie Davis, Alice Johnson, Bob Smith</pre>
         </div>
       </section>
 
-      <!-- VIEW: Settings -->
-      <section id="view-settings" class="view" style="display: none;">
-        <div class="welcome-section">
-          <h3>Settings & Election History</h3>
-          <p>View past elections and their voting tabulation results.</p>
 
-          <div class="settings-tabs">
-            <button class="tab-btn active" id="tab-history">Election History</button>
-            <button class="tab-btn" id="tab-methods">Voting Methods</button>
-          </div>
-
-          <!-- Election History Tab -->
-          <div id="tab-content-history" class="tab-content">
-            <div class="history-header">
-              <h4>Past Elections</h4>
-              <button class="btn btn-secondary btn-small" id="clear-history-btn">Clear All History</button>
-            </div>
-
-            <div id="election-history-list" class="election-history-list">
-              <!-- Elections will be populated here -->
-            </div>
-
-            <div id="no-history-message" class="no-history-message" style="display: none;">
-              <p>No past elections found. Run an election to see it here!</p>
-            </div>
-          </div>
-
-          <!-- Voting Methods Tab -->
-          <div id="tab-content-methods" class="tab-content" style="display: none;">
-            <h4>Voting Methods</h4>
-
-            <div class="method-description-card">
-              <h5>Instant-Runoff Voting (IRV)</h5>
-              <p>Voters rank candidates by preference. If no candidate wins a majority of first-choice votes, the last-place candidate is eliminated and their votes transfer to each ballot's next choice. This process repeats until a winner is found. For multiple seats, STV (Single Transferable Vote) is used.</p>
-            </div>
-
-            <div class="method-description-card">
-              <h5>Borda Count</h5>
-              <p>Voters rank candidates, and each position earns points (1st choice gets the most, last gets the fewest). The candidate with the highest total points wins. For multiple seats, the top scorers fill each seat.</p>
-            </div>
-
-            <div class="method-description-card">
-              <h5>Preferential Block Voting (PBV)</h5>
-              <p>Voters rank candidates by preference. For N seats, each ballot counts its top N active preferences (1 vote each). The lowest-ranked candidate is eliminated each round and the next preference slides up to fill the gap, so each voter always has up to N active votes. Elimination continues until N candidates remain. With 1 seat, this is identical to standard IRV.</p>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-secondary" id="settings-back-btn">Back</button>
-          </div>
-        </div>
-      </section>
     </main>
 
     <footer>
