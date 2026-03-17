@@ -647,6 +647,7 @@ async function runMultiPositionElection(positions, method, seats) {
     const response = await window.electronAPI.runElection(config);
 
     if (response.success) {
+      response.result.fileName = position.fileName;
       results.push(response.result);
     } else {
       const errBox = document.getElementById('validation-errors');
@@ -679,71 +680,96 @@ function displayMultiPositionResults(results) {
   document.getElementById('result-total-ballots').textContent = totalBallots;
   document.getElementById('result-total-candidates').textContent = totalCandidates;
 
-  // Summary of winners per position
+  // Group results by source file
+  const fileGroups = [];
+  const fileMap = new Map();
+  results.forEach(result => {
+    const fn = result.fileName || 'Unknown File';
+    if (!fileMap.has(fn)) {
+      const group = { fileName: fn, results: [] };
+      fileGroups.push(group);
+      fileMap.set(fn, group);
+    }
+    fileMap.get(fn).results.push(result);
+  });
+
+  // Summary of winners grouped by file
   const summaryEl = document.getElementById('result-summary');
   let summaryHTML = '<div class="multi-position-summary">';
-  results.forEach(result => {
-    const winnerText = result.winners && result.winners.length > 0
-      ? result.winners.join(', ')
-      : 'Tie - Not All Seats Filled';
-    summaryHTML += `<p><strong>${result.title}:</strong> ${winnerText}</p>`;
+  fileGroups.forEach(group => {
+    summaryHTML += `<p class="summary-file-label">${escapeHtml(fileGroupLabel(group.fileName))}</p>`;
+    group.results.forEach(result => {
+      const winnerText = result.winners && result.winners.length > 0
+        ? result.winners.join(', ')
+        : 'Tie - Not All Seats Filled';
+      summaryHTML += `<p><strong>${result.title}:</strong> ${winnerText}</p>`;
+    });
   });
   summaryHTML += '</div>';
   summaryEl.innerHTML = summaryHTML;
 
-  // Display rounds for each position
+  // Display rounds grouped by file
   const container = document.getElementById('rounds-container');
   container.innerHTML = '';
 
-  results.forEach((result, index) => {
-    const winnerPreview = result.winners && result.winners.length > 0
-      ? result.winners.join(', ')
-      : 'Tie — Not All Seats Filled';
+  let positionIndex = 0;
+  fileGroups.forEach(group => {
+    const fileHeader = document.createElement('div');
+    fileHeader.className = 'results-file-group-header';
+    fileHeader.textContent = fileGroupLabel(group.fileName);
+    container.appendChild(fileHeader);
 
-    const title = result.title
-      ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
-      : result.title;
+    group.results.forEach(result => {
+      positionIndex++;
+      const winnerPreview = result.winners && result.winners.length > 0
+        ? result.winners.join(', ')
+        : 'Tie — Not All Seats Filled';
 
-    // Accordion card
-    const accordion = document.createElement('div');
-    accordion.className = 'position-accordion';
-    accordion.innerHTML = `
-      <div class="position-accordion-header">
-        <div class="position-accordion-left">
-          <span class="position-accordion-index">${index + 1}</span>
-          <span class="position-accordion-title">${title}</span>
-        </div>
-        <div class="position-accordion-right">
-          <span class="position-winner-badge">${winnerPreview}</span>
-          <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-      </div>`;
+      const title = result.title
+        ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
+        : result.title;
 
-    // Body — hidden by default
-    const body = document.createElement('div');
-    body.className = 'position-accordion-body';
-    body.style.display = 'none';
-    accordion.appendChild(body);
+      // Accordion card
+      const accordion = document.createElement('div');
+      accordion.className = 'position-accordion';
+      accordion.innerHTML = `
+        <div class="position-accordion-header">
+          <div class="position-accordion-left">
+            <span class="position-accordion-index">${positionIndex}</span>
+            <span class="position-accordion-title">${title}</span>
+          </div>
+          <div class="position-accordion-right">
+            <span class="position-winner-badge">${winnerPreview}</span>
+            <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>`;
 
-    // Render rounds into the body
-    if (result.method === 'irv') {
-      displayIRVRounds(result, body);
-    } else if (result.method === 'borda') {
-      displayBordaResults(result, body);
-    } else if (result.method === 'preferential-block') {
-      displayPreferentialBlockBreakdown(result, body);
-    }
+      // Body — hidden by default
+      const body = document.createElement('div');
+      body.className = 'position-accordion-body';
+      body.style.display = 'none';
+      accordion.appendChild(body);
 
-    // Toggle on header click
-    accordion.querySelector('.position-accordion-header').addEventListener('click', () => {
-      const isHidden = body.style.display === 'none';
-      body.style.display = isHidden ? 'block' : 'none';
-      accordion.classList.toggle('expanded', isHidden);
+      // Render rounds into the body
+      if (result.method === 'irv') {
+        displayIRVRounds(result, body);
+      } else if (result.method === 'borda') {
+        displayBordaResults(result, body);
+      } else if (result.method === 'preferential-block') {
+        displayPreferentialBlockBreakdown(result, body);
+      }
+
+      // Toggle on header click
+      accordion.querySelector('.position-accordion-header').addEventListener('click', () => {
+        const isHidden = body.style.display === 'none';
+        body.style.display = isHidden ? 'block' : 'none';
+        accordion.classList.toggle('expanded', isHidden);
+      });
+
+      container.appendChild(accordion);
     });
-
-    container.appendChild(accordion);
   });
 }
 
@@ -958,5 +984,15 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function fileGroupLabel(fileName) {
+  // Extract class year from "Class of YYYY" → "Class of YYYY Ballot"
+  const classMatch = fileName.match(/class\s+of\s+(\d{4})/i);
+  if (classMatch) {
+    return `Class of ${classMatch[1]} Ballot`;
+  }
+  // Fall back to filename without extension
+  return fileName.replace(/\.[^/.]+$/, '');
 }
 

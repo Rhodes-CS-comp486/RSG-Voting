@@ -790,6 +790,32 @@ footer p {
   margin-bottom: 30px;
 }
 
+.results-file-group-header {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #333;
+  text-decoration: underline;
+  padding: 12px 4px 4px;
+  border-bottom: 1px solid #e8e8e8;
+  margin-top: 8px;
+}
+
+.results-file-group-header:first-child {
+  margin-top: 0;
+}
+
+.summary-file-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #333;
+  text-decoration: underline;
+  margin: 10px 0 2px;
+}
+
 .position-accordion {
   border: 1px solid #e8e8e8;
   border-radius: 8px;
@@ -837,9 +863,11 @@ footer p {
 }
 
 .position-accordion-title {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #1a1a1a;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1255,5 +1283,10 @@ footer p {
   /* Hide the chevron since accordions are all expanded */
   .accordion-chevron {
     display: none !important;
+  }
+
+  /* Keep file group header with its first accordion */
+  .results-file-group-header {
+    break-after: avoid;
   }
 }
