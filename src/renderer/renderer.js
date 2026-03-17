@@ -139,16 +139,23 @@ function ordinalSuffix(n) {
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
+const METHOD_DISPLAY_NAMES = {
+  irv: 'Ranked-Choice Voting',
+  borda: 'Ranked Point System',
+};
+
 function populateMethodDropdown(methods) {
   const select = document.getElementById('voting-method');
   const tooltip = document.getElementById('method-tooltip-text');
   select.innerHTML = '';
-  methods.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m;
-    opt.textContent = m.toUpperCase();
-    select.appendChild(opt);
-  });
+  methods
+    .filter(m => m !== 'preferential-block')
+    .forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
+      select.appendChild(opt);
+    });
   tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
   select.onchange = () => {
     tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
@@ -940,12 +947,7 @@ function createHistoryCard(election) {
 }
 
 function getMethodDisplayName(method) {
-  const methodNames = {
-    'irv': 'Instant Runoff',
-    'borda': 'Borda Count',
-    'pbv': 'Preferential Block Voting'
-  };
-  return methodNames[method] || method.toUpperCase();
+  return METHOD_DISPLAY_NAMES[method] || method.toUpperCase();
 }
 
 function escapeHtml(text) {
