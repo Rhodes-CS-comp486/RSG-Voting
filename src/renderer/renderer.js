@@ -97,6 +97,8 @@ function renderFileList() {
 
   fileList.innerHTML = '';
   loadedPositions.forEach((pos, index) => {
+    if (!pos.seats) pos.seats = 1;
+
     const item = document.createElement('div');
     item.className = 'file-list-item';
     item.innerHTML = `
@@ -105,8 +107,26 @@ function renderFileList() {
         <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
         <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
       </div>
-      <button class="btn-remove-file" type="button" title="Remove">✕</button>
+      <div class="file-list-item-controls">
+        <div class="seats-control">
+          <span class="seats-label">Number of Seats</span>
+          <div class="seats-stepper">
+            <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+            <span class="seats-value">${pos.seats}</span>
+            <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
+          </div>
+        </div>
+        <button class="btn-remove-file" type="button" title="Remove">✕</button>
+      </div>
     `;
+    item.querySelectorAll('.seats-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = parseInt(btn.dataset.dir, 10);
+        const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
+        loadedPositions[index].seats = next;
+        item.querySelector('.seats-value').textContent = next;
+      });
+    });
     item.querySelector('.btn-remove-file').addEventListener('click', () => {
       loadedPositions.splice(index, 1);
       renderFileList();
@@ -253,7 +273,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     errBox.style.display = 'none';
 
     const method = document.getElementById('voting-method').value;
-    const seats = parseInt(document.getElementById('seats-input').value, 10) || 1;
 
     // --- Upload mode: use loadedPositions ---
     if (inputMode === 'upload') {
@@ -264,12 +283,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       if (loadedPositions.length > 1) {
-        await runMultiPositionElection(loadedPositions, method, seats);
+        await runMultiPositionElection(loadedPositions, method);
         return;
       }
 
       // Single position from file
       const pos = loadedPositions[0];
+      const seats = pos.seats || 1;
       const config = { title: pos.title, candidates: pos.candidates, method, ballots: pos.ballots, seats };
       const response = await window.electronAPI.runElection(config);
 
@@ -299,6 +319,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const seats = parseInt(document.getElementById('manual-seats-input').value, 10) || 1;
     const config = { title: 'Election', candidates, method, ballots, seats };
     const response = await window.electronAPI.runElection(config);
 
@@ -583,7 +604,7 @@ function displayPreferentialBlockBreakdown(result, container) {
   });
 }
 
-async function runMultiPositionElection(positions, method, seats) {
+async function runMultiPositionElection(positions, method) {
   const results = [];
 
   for (const position of positions) {
@@ -592,7 +613,7 @@ async function runMultiPositionElection(positions, method, seats) {
       candidates: position.candidates,
       method: method,
       ballots: position.ballots,
-      seats: seats
+      seats: position.seats || 1
     };
 
     const response = await window.electronAPI.runElection(config);
