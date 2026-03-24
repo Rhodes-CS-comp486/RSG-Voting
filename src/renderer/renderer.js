@@ -226,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('mode-manual-btn').classList.remove('active');
     document.getElementById('input-mode-upload').style.display = 'block';
     document.getElementById('input-mode-manual').style.display = 'none';
+    document.getElementById('global-method-group').style.display = 'none';
     // Reset upload trigger state
     document.getElementById('upload-trigger-area').style.display = 'block';
     document.getElementById('drop-zone-wrapper').style.display = 'none';
@@ -238,6 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('mode-upload-btn').classList.remove('active');
     document.getElementById('input-mode-manual').style.display = 'block';
     document.getElementById('input-mode-upload').style.display = 'none';
+    document.getElementById('global-method-group').style.display = 'block';
   });
 
   // Drop zone: drag events
