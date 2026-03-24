@@ -4,6 +4,7 @@ let parsedCandidates = [];
 let parsedBallots = [];
 let inputMode = 'upload'; // 'upload' | 'manual'
 let loadedPositions = []; // positions accumulated from all uploaded files
+let availableMethods = []; // populated once methods are fetched from main process
 
 function capitalizeFirst(str) {
   if (!str) return str;
@@ -45,11 +46,13 @@ async function handleFileLoad(file) {
       const parseResult = await window.electronAPI.parseCSV(text);
 
       if (parseResult.success && parseResult.positions.length > 0) {
+        const defaultMethod = document.getElementById('voting-method').value;
         const positions = parseResult.positions.map(pos => ({
           title: capitalizeFirst(pos.title),
           candidates: pos.candidates.map(capitalizeFirst),
           ballots: pos.ballots.map(ballot => ballot.map(capitalizeFirst)),
-          fileName: file.name
+          fileName: file.name,
+          method: defaultMethod
         }));
         loadedPositions.push(...positions);
         renderFileList();
@@ -71,7 +74,8 @@ async function handleFileLoad(file) {
       title: capitalizeFirst(titleFromFile),
       candidates,
       ballots,
-      fileName: file.name
+      fileName: file.name,
+      method: document.getElementById('voting-method').value
     });
     renderFileList();
   };
@@ -101,6 +105,10 @@ function renderFileList() {
 
     const item = document.createElement('div');
     item.className = 'file-list-item';
+    const methodOptions = availableMethods.map(m =>
+      `<option value="${m}"${m === pos.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
+    ).join('');
+
     item.innerHTML = `
       <div class="file-list-item-info">
         <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
@@ -108,8 +116,12 @@ function renderFileList() {
         <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
       </div>
       <div class="file-list-item-controls">
+        <div class="position-method-control">
+          <span class="seats-label">Voting Method</span>
+          <select class="position-method-select">${methodOptions}</select>
+        </div>
         <div class="seats-control">
-          <span class="seats-label">Number of Seats</span>
+          <span class="seats-label">Seats</span>
           <div class="seats-stepper">
             <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
             <span class="seats-value">${pos.seats}</span>
@@ -119,6 +131,9 @@ function renderFileList() {
         <button class="btn-remove-file" type="button" title="Remove">✕</button>
       </div>
     `;
+    item.querySelector('.position-method-select').addEventListener('change', (e) => {
+      loadedPositions[index].method = e.target.value;
+    });
     item.querySelectorAll('.seats-step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const dir = parseInt(btn.dataset.dir, 10);
@@ -166,10 +181,11 @@ function ordinalSuffix(n) {
 }
 
 function populateMethodDropdown(methods) {
+  availableMethods = methods;
   const select = document.getElementById('voting-method');
   const tooltip = document.getElementById('method-tooltip-text');
   select.innerHTML = '';
-  methods.forEach(m => {
+  availableMethods.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m;
     opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
@@ -283,14 +299,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       if (loadedPositions.length > 1) {
-        await runMultiPositionElection(loadedPositions, method);
+        await runMultiPositionElection(loadedPositions);
         return;
       }
 
       // Single position from file
       const pos = loadedPositions[0];
       const seats = pos.seats || 1;
-      const config = { title: pos.title, candidates: pos.candidates, method, ballots: pos.ballots, seats };
+      const config = { title: pos.title, candidates: pos.candidates, method: pos.method || method, ballots: pos.ballots, seats };
       const response = await window.electronAPI.runElection(config);
 
       if (response.success) {
@@ -604,14 +620,14 @@ function displayPreferentialBlockBreakdown(result, container) {
   });
 }
 
-async function runMultiPositionElection(positions, method) {
+async function runMultiPositionElection(positions) {
   const results = [];
 
   for (const position of positions) {
     const config = {
       title: position.title,
       candidates: position.candidates,
-      method: method,
+      method: position.method,
       ballots: position.ballots,
       seats: position.seats || 1
     };
