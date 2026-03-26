@@ -183,7 +183,6 @@ function ordinalSuffix(n) {
 function populateMethodDropdown(methods) {
   availableMethods = methods;
   const select = document.getElementById('voting-method');
-  const tooltip = document.getElementById('method-tooltip-text');
   select.innerHTML = '';
   availableMethods.forEach(m => {
     const opt = document.createElement('option');
@@ -191,10 +190,6 @@ function populateMethodDropdown(methods) {
     opt.textContent = METHOD_DISPLAY_NAMES[m] || m.toUpperCase();
     select.appendChild(opt);
   });
-  tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
-  select.onchange = () => {
-    tooltip.textContent = METHOD_DESCRIPTIONS[select.value] || '';
-  };
 }
 
 // View switching — hides all sections, shows the one you want
@@ -212,6 +207,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateMethodDropdown(methods);
 
   // --- Setup view buttons ---
+
+  document.getElementById('method-info-btn').addEventListener('click', () => {
+    showView('view-methods');
+  });
+
+  document.getElementById('methods-back-btn').addEventListener('click', () => {
+    showView('view-setup');
+  });
 
   // --- Upload trigger button ---
   document.getElementById('reveal-dropzone-btn').addEventListener('click', () => {

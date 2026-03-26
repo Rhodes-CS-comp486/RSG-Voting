@@ -30,12 +30,7 @@
           <h3>Set Up New Election</h3>
 
           <div class="form-group" id="global-method-group" style="display: none;">
-            <label for="voting-method">Voting Method
-              <span class="method-tooltip-wrapper">
-                <span class="method-tooltip-icon">?</span>
-                <span class="method-tooltip-text" id="method-tooltip-text"></span>
-              </span>
-            </label>
+            <label for="voting-method">Voting Method</label>
             <select id="voting-method"></select>
           </div>
 
@@ -125,6 +120,7 @@ Charlie Davis, Alice Johnson, Bob Smith</pre>
 
           <div class="actions">
             <button class="btn btn-primary" id="run-election-btn">Run Election</button>
+            <button class="btn btn-secondary" id="method-info-btn" type="button">Method Info</button>
           </div>
         </div>
       </section>
@@ -153,6 +149,30 @@ Charlie Davis, Alice Johnson, Bob Smith</pre>
         </div>
       </section>
 
+
+      <!-- VIEW: Method Info -->
+      <section id="view-methods" class="view" style="display: none;">
+        <div class="welcome-section">
+          <h3>Voting Methods</h3>
+          <div class="method-info-list">
+            <div class="method-info-card">
+              <h4 class="method-info-name">Ranked Choice (Instant-Runoff)</h4>
+              <p class="method-info-desc">Voters rank candidates by preference. If no candidate wins a majority of first-choice votes, the last-place candidate is eliminated and their votes transfer to each ballot's next choice. Repeats until a winner is found. For multiple seats, STV (Single Transferable Vote) is used.</p>
+            </div>
+            <div class="method-info-card">
+              <h4 class="method-info-name">Points-Based Ranking (Borda Count)</h4>
+              <p class="method-info-desc">Voters rank candidates, and each position earns points (1st choice gets the most, last gets the fewest). The candidate with the highest total points wins. For multiple seats, the top scorers fill each seat.</p>
+            </div>
+            <div class="method-info-card">
+              <h4 class="method-info-name">Multi-Seat Ranked Choice (Preferential Block)</h4>
+              <p class="method-info-desc">Voters rank candidates by preference. For N seats, each ballot counts its top N active preferences (1 vote each). The lowest-ranked candidate is eliminated each round and the next preference slides up to fill the gap, so each voter always has up to N active votes. Elimination continues until N candidates remain. With 1 seat, this is identical to standard IRV.</p>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-secondary" id="methods-back-btn" type="button">Back</button>
+          </div>
+        </div>
+      </section>
 
     </main>
 
