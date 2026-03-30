@@ -1174,3 +1174,60 @@ footer p {
     break-after: avoid;
   }
 }
+
+/* ── File group header in upload list ───────────────────────────────────── */
+
+.file-list-group-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+  padding: 10px 4px 4px;
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 4px;
+}
+
+.file-list-group-header:first-child {
+  padding-top: 4px;
+}
+
+/* ── Combine across grades checkbox ─────────────────────────────────────── */
+
+.combine-checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.combine-checkbox-label span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #999;
+  white-space: nowrap;
+}
+
+.combine-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #cc0000;
+}
+
+/* Locked follower controls */
+.file-list-item-controls select:disabled,
+.file-list-item-controls .seats-step-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Combined group header in results */
+.results-file-group-header--combined {
+  color: #cc0000;
+  border-bottom-color: #cc0000;
+}
