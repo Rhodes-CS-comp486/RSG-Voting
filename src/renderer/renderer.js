@@ -52,7 +52,8 @@ async function handleFileLoad(file) {
           candidates: pos.candidates.map(capitalizeFirst),
           ballots: pos.ballots.map(ballot => ballot.map(capitalizeFirst)),
           fileName: file.name,
-          method: defaultMethod
+          method: defaultMethod,
+          combine: false
         }));
         loadedPositions.push(...positions);
         renderFileList();
@@ -75,7 +76,8 @@ async function handleFileLoad(file) {
       candidates,
       ballots,
       fileName: file.name,
-      method: document.getElementById('voting-method').value
+      method: document.getElementById('voting-method').value,
+      combine: false
     });
     renderFileList();
   };
@@ -100,8 +102,32 @@ function renderFileList() {
   countEl.textContent = `${total} position${total !== 1 ? 's' : ''} loaded`;
 
   fileList.innerHTML = '';
+  let lastFileName = null;
   loadedPositions.forEach((pos, index) => {
     if (!pos.seats) pos.seats = 1;
+
+    // Insert a file group header when the source file changes
+    if (pos.fileName !== lastFileName) {
+      lastFileName = pos.fileName;
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'file-list-group-header';
+      groupHeader.textContent = fileGroupLabel(pos.fileName);
+      fileList.appendChild(groupHeader);
+    }
+
+    // Determine if this is a follower in a combine group (another earlier position
+    // with the same title is already checked)
+    const leaderIndex = pos.combine
+      ? loadedPositions.findIndex((p, i) => i < index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase())
+      : -1;
+    const isFollower = leaderIndex !== -1;
+    const leader = isFollower ? loadedPositions[leaderIndex] : null;
+
+    // Followers mirror the leader's method and seats
+    if (isFollower) {
+      pos.method = leader.method;
+      pos.seats = leader.seats;
+    }
 
     const item = document.createElement('div');
     item.className = 'file-list-item';
@@ -118,33 +144,45 @@ function renderFileList() {
       <div class="file-list-item-controls">
         <div class="position-method-control">
           <span class="seats-label">Voting Method</span>
-          <select class="position-method-select">${methodOptions}</select>
+          <select class="position-method-select"${isFollower ? ' disabled' : ''}>${methodOptions}</select>
         </div>
         <div class="seats-control">
           <span class="seats-label">Seats</span>
           <div class="seats-stepper">
-            <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+            <button class="seats-step-btn" type="button" data-dir="-1"${isFollower ? ' disabled' : ''}>&#8722;</button>
             <span class="seats-value">${pos.seats}</span>
-            <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
+            <button class="seats-step-btn" type="button" data-dir="1"${isFollower ? ' disabled' : ''}>&#43;</button>
           </div>
         </div>
+        <label class="combine-checkbox-label">
+          <span>Combine</span>
+          <input type="checkbox" class="combine-checkbox"${pos.combine ? ' checked' : ''}>
+        </label>
         <button class="btn-remove-file" type="button" title="Remove">✕</button>
       </div>
     `;
     item.querySelector('.position-method-select').addEventListener('change', (e) => {
       loadedPositions[index].method = e.target.value;
+      const hasFollowers = loadedPositions.some((p, i) => i > index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase());
+      if (hasFollowers) renderFileList();
     });
     item.querySelectorAll('.seats-step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const dir = parseInt(btn.dataset.dir, 10);
         const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
         loadedPositions[index].seats = next;
-        item.querySelector('.seats-value').textContent = next;
+        const hasFollowers = loadedPositions.some((p, i) => i > index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase());
+        if (hasFollowers) renderFileList();
+        else item.querySelector('.seats-value').textContent = next;
       });
     });
     item.querySelector('.btn-remove-file').addEventListener('click', () => {
       loadedPositions.splice(index, 1);
       renderFileList();
+    });
+    item.querySelector('.combine-checkbox').addEventListener('change', (e) => {
+      loadedPositions[index].combine = e.target.checked;
+      renderFileList(); // re-render so followers lock/unlock immediately
     });
     fileList.appendChild(item);
   });
@@ -626,9 +664,45 @@ function displayPreferentialBlockBreakdown(result, container) {
 }
 
 async function runMultiPositionElection(positions) {
+  // --- Combine pass ---
+  const combineGroups = new Map(); // lowercase title -> index in effectivePositions
+  const effectivePositions = [];
+
+  for (const pos of positions) {
+    if (pos.combine) {
+      const key = pos.title.toLowerCase();
+      if (combineGroups.has(key)) {
+        const existing = effectivePositions[combineGroups.get(key)];
+        existing.ballots = existing.ballots.concat(pos.ballots);
+        existing.combinedFrom.push(pos.fileName);
+      } else {
+        effectivePositions.push({
+          title: pos.title,
+          candidates: pos.candidates,
+          ballots: [...pos.ballots],
+          fileName: pos.fileName,
+          method: pos.method,
+          seats: pos.seats || 1,
+          combinedFrom: [pos.fileName]
+        });
+        combineGroups.set(key, effectivePositions.length - 1);
+      }
+    } else {
+      effectivePositions.push(pos);
+    }
+  }
+
+  // A combine group with only one source behaves like a normal position
+  for (const pos of effectivePositions) {
+    if (pos.combinedFrom && pos.combinedFrom.length === 1) {
+      pos.combinedFrom = null;
+    }
+  }
+
+  // --- Election loop ---
   const results = [];
 
-  for (const position of positions) {
+  for (const position of effectivePositions) {
     const config = {
       title: position.title,
       candidates: position.candidates,
@@ -641,6 +715,7 @@ async function runMultiPositionElection(positions) {
 
     if (response.success) {
       response.result.fileName = position.fileName;
+      response.result.combinedFrom = position.combinedFrom || null;
       results.push(response.result);
     } else {
       const errBox = document.getElementById('validation-errors');
@@ -651,14 +726,9 @@ async function runMultiPositionElection(positions) {
   }
 
   electionCount += results.length;
-
-  // Store for "View Results" button
   lastResult = { multiPosition: true, results: results };
-
-  // Display all results
   displayMultiPositionResults(results);
   showView('view-results-page');
-
   clearFile();
 }
 
@@ -673,24 +743,43 @@ function displayMultiPositionResults(results) {
   document.getElementById('result-total-ballots').textContent = totalBallots;
   document.getElementById('result-total-candidates').textContent = totalCandidates;
 
-  // Group results by source file
+  // Combined results appear first, preserve original order within each group
+  const sortedResults = [...results].sort((a, b) =>
+    (b.combinedFrom ? 1 : 0) - (a.combinedFrom ? 1 : 0) ||
+    results.indexOf(a) - results.indexOf(b)
+  );
+
+  // Group results by source file (combined results get their own group)
   const fileGroups = [];
   const fileMap = new Map();
-  results.forEach(result => {
-    const fn = result.fileName || 'Unknown File';
-    if (!fileMap.has(fn)) {
-      const group = { fileName: fn, results: [] };
-      fileGroups.push(group);
-      fileMap.set(fn, group);
+  sortedResults.forEach(result => {
+    if (result.combinedFrom) {
+      const groupKey = '__combined__' + result.combinedFrom.slice().sort().join('|');
+      if (!fileMap.has(groupKey)) {
+        const group = { fileName: groupKey, combinedFrom: result.combinedFrom, results: [] };
+        fileGroups.push(group);
+        fileMap.set(groupKey, group);
+      }
+      fileMap.get(groupKey).results.push(result);
+    } else {
+      const fn = result.fileName || 'Unknown File';
+      if (!fileMap.has(fn)) {
+        const group = { fileName: fn, combinedFrom: null, results: [] };
+        fileGroups.push(group);
+        fileMap.set(fn, group);
+      }
+      fileMap.get(fn).results.push(result);
     }
-    fileMap.get(fn).results.push(result);
   });
 
   // Summary of winners grouped by file
   const summaryEl = document.getElementById('result-summary');
   let summaryHTML = '<div class="multi-position-summary">';
   fileGroups.forEach(group => {
-    summaryHTML += `<p class="summary-file-label">${escapeHtml(fileGroupLabel(group.fileName))}</p>`;
+    const labelText = group.combinedFrom
+      ? 'Combined (' + group.combinedFrom.map(fileGroupLabel).join(', ') + ')'
+      : fileGroupLabel(group.fileName);
+    summaryHTML += `<p class="summary-file-label">${escapeHtml(labelText)}</p>`;
     group.results.forEach(result => {
       const winnerText = result.winners && result.winners.length > 0
         ? result.winners.join(', ')
@@ -708,8 +797,13 @@ function displayMultiPositionResults(results) {
   let positionIndex = 0;
   fileGroups.forEach(group => {
     const fileHeader = document.createElement('div');
-    fileHeader.className = 'results-file-group-header';
-    fileHeader.textContent = fileGroupLabel(group.fileName);
+    const isCombined = !!group.combinedFrom;
+    fileHeader.className = isCombined
+      ? 'results-file-group-header results-file-group-header--combined'
+      : 'results-file-group-header';
+    fileHeader.textContent = isCombined
+      ? 'Combined (' + group.combinedFrom.map(fileGroupLabel).join(', ') + ')'
+      : fileGroupLabel(group.fileName);
     container.appendChild(fileHeader);
 
     group.results.forEach(result => {
