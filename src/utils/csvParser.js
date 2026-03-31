@@ -51,11 +51,9 @@ function parseQualtricsCSV(csvContent) {
       });
     });
 
-    // Validate that we found at least one position
-    console.log('[CSV Parser] Positions found:', Object.keys(positionColumns));
-    if (Object.keys(positionColumns).length === 0) {
-      return { success: false, positions: null, error: 'No valid position columns found in CSV.' };
-    }
+    // Track which column indices are already used by ranking questions
+    const usedColIndices = new Set();
+    Object.values(positionColumns).forEach(cols => cols.forEach(c => usedColIndices.add(c.columnIndex)));
 
     // Step 4: Extract ballot data (skip rows 0-2, start from row 3)
     const ballotRows = rows.slice(3).filter(row => row.length > 0);
@@ -64,18 +62,50 @@ function parseQualtricsCSV(csvContent) {
       return { success: false, positions: null, error: 'No ballot data found in CSV.' };
     }
 
+    // Detect Yes/No (or any single-choice) vote columns not already handled
+    // These are columns where all non-empty values are the same small set of options (e.g. Yes/No)
+    const singleChoiceColumns = {};
+    headers.forEach((header, colIndex) => {
+      if (usedColIndices.has(colIndex)) return;
+      if (!header || header.trim() === '') return;
+
+      // Collect unique non-empty values for this column
+      const values = ballotRows
+        .map(row => row[colIndex] ? row[colIndex].trim() : '')
+        .filter(v => v !== '');
+
+      if (values.length === 0) return;
+
+      const uniqueValues = new Set(values.map(v => v.toLowerCase()));
+
+      // Detect Yes/No questions
+      const isYesNo = uniqueValues.size <= 4 &&
+        [...uniqueValues].every(v => ['yes', 'no', 'y', 'n', 'true', 'false'].includes(v));
+
+      if (isYesNo) {
+        singleChoiceColumns[colIndex] = { header, values };
+        console.log('[CSV Parser] Yes/No column found:', header, 'col:', colIndex);
+      }
+    });
+
+    // Validate that we found at least one position
+    const allPositionNames = [...Object.keys(positionColumns), ...Object.keys(singleChoiceColumns).map(i => singleChoiceColumns[i].header)];
+    console.log('[CSV Parser] Positions found:', allPositionNames);
+    if (allPositionNames.length === 0) {
+      return { success: false, positions: null, error: 'No valid position columns found in CSV.' };
+    }
+
     // Step 5: Transform each position
     const positions = [];
 
+    // Handle ranking questions (multi-column, numeric rank values)
     for (const [positionName, columns] of Object.entries(positionColumns)) {
       const candidates = columns.map(c => c.candidateId);
       const ballots = [];
 
-      // Transform each ballot row
       for (const row of ballotRows) {
-        const rankings = {}; // candidateId -> rank
+        const rankings = {};
 
-        // Extract ranks for this position
         for (const col of columns) {
           const rankValue = row[col.columnIndex];
           if (rankValue && rankValue.trim() !== '') {
@@ -86,22 +116,28 @@ function parseQualtricsCSV(csvContent) {
           }
         }
 
-        // Convert rankings object to ordered ballot array
-        // Sort by rank value, then extract candidate IDs
         const rankedCandidates = Object.entries(rankings)
-          .sort((a, b) => a[1] - b[1]) // Sort by rank (1, 2, 3, ...)
-          .map(entry => entry[0]); // Extract candidate IDs
+          .sort((a, b) => a[1] - b[1])
+          .map(entry => entry[0]);
 
-        // Only include ballots with at least one ranking
         if (rankedCandidates.length > 0) {
           ballots.push(rankedCandidates);
         }
       }
 
+      positions.push({ title: positionName, candidates, ballots });
+    }
+
+    // Handle Yes/No and single-choice columns
+    for (const [colIndex, { header, values }] of Object.entries(singleChoiceColumns)) {
+      const candidateSet = new Set(values);
+      const ballots = values.map(v => [v]);
+
       positions.push({
-        title: positionName,
-        candidates: candidates,
-        ballots: ballots
+        title: header.trim(),
+        candidates: Array.from(candidateSet),
+        ballots,
+        isTally: true
       });
     }
 
