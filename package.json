@@ -67,11 +67,14 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron/fuses": "^1.8.0",
-    "electron": "^28.3.3"
+    "electron": "^28.3.3",
+    "electron-builder": "^26.8.1"
   },
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "icon": "src/renderer/assets/RSG_taskbar"
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",

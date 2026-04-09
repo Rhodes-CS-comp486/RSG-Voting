@@ -14,6 +14,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    icon: path.join(__dirname, 'renderer', 'assets', 'RSG_taskbar.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
