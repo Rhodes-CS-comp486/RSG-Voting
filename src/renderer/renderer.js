@@ -102,89 +102,152 @@ function renderFileList() {
   countEl.textContent = `${total} position${total !== 1 ? 's' : ''} loaded`;
 
   fileList.innerHTML = '';
+
+  // Build display rows: combined positions collapse into one row; uncombined stay separate.
+  // A "combine group" is a set of positions sharing the same title (case-insensitive) where
+  // every member has combine=true.
+  const rendered = new Set(); // indices already absorbed into a combined row
   let lastFileName = null;
+
   loadedPositions.forEach((pos, index) => {
     if (!pos.seats) pos.seats = 1;
+    if (rendered.has(index)) return;
 
-    // Insert a file group header when the source file changes
-    if (pos.fileName !== lastFileName) {
-      lastFileName = pos.fileName;
-      const groupHeader = document.createElement('div');
-      groupHeader.className = 'file-list-group-header';
-      groupHeader.textContent = fileGroupLabel(pos.fileName);
-      fileList.appendChild(groupHeader);
-    }
+    // Collect all positions in the same combine group (same title, all combine=true)
+    const titleKey = pos.title.toLowerCase();
+    const groupIndices = pos.combine
+      ? loadedPositions.reduce((acc, p, i) => {
+          if (p.combine && p.title.toLowerCase() === titleKey) acc.push(i);
+          return acc;
+        }, [])
+      : [index];
 
-    // Determine if this is a follower in a combine group (another earlier position
-    // with the same title is already checked)
-    const leaderIndex = pos.combine
-      ? loadedPositions.findIndex((p, i) => i < index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase())
-      : -1;
-    const isFollower = leaderIndex !== -1;
-    const leader = isFollower ? loadedPositions[leaderIndex] : null;
+    const isCombinedGroup = groupIndices.length > 1;
 
-    // Followers mirror the leader's method and seats
-    if (isFollower) {
-      pos.method = leader.method;
-      pos.seats = leader.seats;
-    }
-
-    const item = document.createElement('div');
-    item.className = 'file-list-item';
-    const methodOptions = availableMethods.map(m =>
-      `<option value="${m}"${m === pos.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
-    ).join('');
-
-    item.innerHTML = `
-      <div class="file-list-item-info">
-        <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
-        <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
-        <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
-      </div>
-      <div class="file-list-item-controls">
-        <div class="position-method-control">
-          <span class="seats-label">Voting Method</span>
-          <select class="position-method-select"${isFollower ? ' disabled' : ''}>${methodOptions}</select>
-        </div>
-        <div class="seats-control">
-          <span class="seats-label">Seats</span>
-          <div class="seats-stepper">
-            <button class="seats-step-btn" type="button" data-dir="-1"${isFollower ? ' disabled' : ''}>&#8722;</button>
-            <span class="seats-value">${pos.seats}</span>
-            <button class="seats-step-btn" type="button" data-dir="1"${isFollower ? ' disabled' : ''}>&#43;</button>
-          </div>
-        </div>
-        <label class="combine-checkbox-label">
-          <span>Combine</span>
-          <input type="checkbox" class="combine-checkbox"${pos.combine ? ' checked' : ''}>
-        </label>
-        <button class="btn-remove-file" type="button" title="Remove">✕</button>
-      </div>
-    `;
-    item.querySelector('.position-method-select').addEventListener('change', (e) => {
-      loadedPositions[index].method = e.target.value;
-      const hasFollowers = loadedPositions.some((p, i) => i > index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase());
-      if (hasFollowers) renderFileList();
-    });
-    item.querySelectorAll('.seats-step-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const dir = parseInt(btn.dataset.dir, 10);
-        const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
-        loadedPositions[index].seats = next;
-        const hasFollowers = loadedPositions.some((p, i) => i > index && p.combine && p.title.toLowerCase() === pos.title.toLowerCase());
-        if (hasFollowers) renderFileList();
-        else item.querySelector('.seats-value').textContent = next;
+    if (isCombinedGroup) {
+      // Sync method/seats from first member to all others
+      const leader = loadedPositions[groupIndices[0]];
+      groupIndices.forEach(i => {
+        loadedPositions[i].method = leader.method;
+        loadedPositions[i].seats = leader.seats;
       });
-    });
-    item.querySelector('.btn-remove-file').addEventListener('click', () => {
-      loadedPositions.splice(index, 1);
-      renderFileList();
-    });
-    item.querySelector('.combine-checkbox').addEventListener('change', (e) => {
-      loadedPositions[index].combine = e.target.checked;
-      renderFileList(); // re-render so followers lock/unlock immediately
-    });
-    fileList.appendChild(item);
+
+      groupIndices.forEach(i => rendered.add(i));
+
+      const fileLabels = groupIndices.map(i => fileGroupLabel(loadedPositions[i].fileName));
+      const totalCandidates = new Set(groupIndices.flatMap(i => loadedPositions[i].candidates)).size;
+      const totalBallots = groupIndices.reduce((s, i) => s + loadedPositions[i].ballots.length, 0);
+      const combinedTitle = `${escapeHtml(pos.title)} (${fileLabels.map(escapeHtml).join(', ')})`;
+
+      const methodOptions = availableMethods.map(m =>
+        `<option value="${m}"${m === leader.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
+      ).join('');
+
+      const item = document.createElement('div');
+      item.className = 'file-list-item file-list-item--combined';
+      item.innerHTML = `
+        <div class="file-list-item-info">
+          <span class="file-list-item-title">${combinedTitle}</span>
+          <span class="file-list-item-meta">${totalCandidates} candidates · ${totalBallots} ballots combined</span>
+        </div>
+        <div class="file-list-item-controls">
+          <div class="position-method-control">
+            <span class="seats-label">Voting Method</span>
+            <select class="position-method-select">${methodOptions}</select>
+          </div>
+          <div class="seats-control">
+            <span class="seats-label">Seats</span>
+            <div class="seats-stepper">
+              <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+              <span class="seats-value">${leader.seats}</span>
+              <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
+            </div>
+          </div>
+          <button type="button" class="combine-btn combined">Uncombine</button>
+        </div>
+      `;
+      item.querySelector('.position-method-select').addEventListener('change', (e) => {
+        groupIndices.forEach(i => { loadedPositions[i].method = e.target.value; });
+      });
+      item.querySelectorAll('.seats-step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dir = parseInt(btn.dataset.dir, 10);
+          const next = Math.min(10, Math.max(1, loadedPositions[groupIndices[0]].seats + dir));
+          groupIndices.forEach(i => { loadedPositions[i].seats = next; });
+          item.querySelector('.seats-value').textContent = next;
+        });
+      });
+      item.querySelector('.combine-btn').addEventListener('click', () => {
+        groupIndices.forEach(i => { loadedPositions[i].combine = false; });
+        renderFileList();
+      });
+      fileList.appendChild(item);
+
+    } else {
+      // Normal single-position row
+      const methodOptions = availableMethods.map(m =>
+        `<option value="${m}"${m === pos.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
+      ).join('');
+
+      const item = document.createElement('div');
+      item.className = 'file-list-item';
+
+      if (pos.fileName !== lastFileName) {
+        lastFileName = pos.fileName;
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'file-list-group-header';
+        groupHeader.textContent = fileGroupLabel(pos.fileName);
+        fileList.appendChild(groupHeader);
+      }
+
+      item.innerHTML = `
+        <div class="file-list-item-info">
+          <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
+          <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
+          <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
+        </div>
+        <div class="file-list-item-controls">
+          <div class="position-method-control">
+            <span class="seats-label">Voting Method</span>
+            <select class="position-method-select">${methodOptions}</select>
+          </div>
+          <div class="seats-control">
+            <span class="seats-label">Seats</span>
+            <div class="seats-stepper">
+              <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+              <span class="seats-value">${pos.seats}</span>
+              <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
+            </div>
+          </div>
+          <button type="button" class="combine-btn${pos.combine ? ' combined' : ''}">${pos.combine ? 'Uncombine' : 'Combine'}</button>
+          <button class="btn-remove-file" type="button" title="Remove">✕</button>
+        </div>
+      `;
+      item.querySelector('.position-method-select').addEventListener('change', (e) => {
+        loadedPositions[index].method = e.target.value;
+      });
+      item.querySelectorAll('.seats-step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dir = parseInt(btn.dataset.dir, 10);
+          const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
+          loadedPositions[index].seats = next;
+          item.querySelector('.seats-value').textContent = next;
+        });
+      });
+      item.querySelector('.btn-remove-file').addEventListener('click', () => {
+        loadedPositions.splice(index, 1);
+        renderFileList();
+      });
+      item.querySelector('.combine-btn').addEventListener('click', () => {
+        const newVal = !loadedPositions[index].combine;
+        const titleKey = loadedPositions[index].title.toLowerCase();
+        loadedPositions.forEach((p, i) => {
+          if (p.title.toLowerCase() === titleKey) loadedPositions[i].combine = newVal;
+        });
+        renderFileList();
+      });
+      fileList.appendChild(item);
+    }
   });
 }
 
