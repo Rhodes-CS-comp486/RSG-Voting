@@ -103,151 +103,147 @@ function renderFileList() {
 
   fileList.innerHTML = '';
 
-  // Build display rows: combined positions collapse into one row; uncombined stay separate.
-  // A "combine group" is a set of positions sharing the same title (case-insensitive) where
-  // every member has combine=true.
-  const rendered = new Set(); // indices already absorbed into a combined row
-  let lastFileName = null;
+  // --- Pass 1: render combined groups first (at the top, no file headers) ---
+  const combinedIndices = new Set(); // all indices absorbed into a combined row
+  const seenCombineTitles = new Set();
 
   loadedPositions.forEach((pos, index) => {
-    if (!pos.seats) pos.seats = 1;
-    if (rendered.has(index)) return;
-
-    // Collect all positions in the same combine group (same title, all combine=true)
+    if (!pos.combine) return;
     const titleKey = pos.title.toLowerCase();
-    const groupIndices = pos.combine
-      ? loadedPositions.reduce((acc, p, i) => {
-          if (p.combine && p.title.toLowerCase() === titleKey) acc.push(i);
-          return acc;
-        }, [])
-      : [index];
+    if (seenCombineTitles.has(titleKey)) return;
+    seenCombineTitles.add(titleKey);
 
-    const isCombinedGroup = groupIndices.length > 1;
+    const groupIndices = loadedPositions.reduce((acc, p, i) => {
+      if (p.combine && p.title.toLowerCase() === titleKey) acc.push(i);
+      return acc;
+    }, []);
 
-    if (isCombinedGroup) {
-      // Sync method/seats from first member to all others
-      const leader = loadedPositions[groupIndices[0]];
-      groupIndices.forEach(i => {
-        loadedPositions[i].method = leader.method;
-        loadedPositions[i].seats = leader.seats;
-      });
+    if (groupIndices.length < 2) return; // need at least 2 to combine
 
-      groupIndices.forEach(i => rendered.add(i));
+    groupIndices.forEach(i => combinedIndices.add(i));
 
-      const fileLabels = groupIndices.map(i => fileGroupLabel(loadedPositions[i].fileName));
-      const totalCandidates = new Set(groupIndices.flatMap(i => loadedPositions[i].candidates)).size;
-      const totalBallots = groupIndices.reduce((s, i) => s + loadedPositions[i].ballots.length, 0);
-      const combinedTitle = `${escapeHtml(pos.title)} (${fileLabels.map(escapeHtml).join(', ')})`;
+    const leader = loadedPositions[groupIndices[0]];
+    groupIndices.forEach(i => {
+      loadedPositions[i].method = leader.method;
+      loadedPositions[i].seats = leader.seats;
+    });
 
-      const methodOptions = availableMethods.map(m =>
-        `<option value="${m}"${m === leader.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
-      ).join('');
+    const fileLabels = groupIndices.map(i => fileGroupLabel(loadedPositions[i].fileName));
+    const totalCandidates = new Set(groupIndices.flatMap(i => loadedPositions[i].candidates)).size;
+    const totalBallots = groupIndices.reduce((s, i) => s + loadedPositions[i].ballots.length, 0);
+    const combinedTitle = `${escapeHtml(pos.title)} (${fileLabels.map(escapeHtml).join(', ')})`;
 
-      const item = document.createElement('div');
-      item.className = 'file-list-item file-list-item--combined';
-      item.innerHTML = `
-        <div class="file-list-item-info">
-          <span class="file-list-item-title">${combinedTitle}</span>
-          <span class="file-list-item-meta">${totalCandidates} candidates · ${totalBallots} ballots combined</span>
+    const methodOptions = availableMethods.map(m =>
+      `<option value="${m}"${m === leader.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
+    ).join('');
+
+    const item = document.createElement('div');
+    item.className = 'file-list-item file-list-item--combined';
+    item.innerHTML = `
+      <div class="file-list-item-info">
+        <span class="file-list-item-title">${combinedTitle}</span>
+        <span class="file-list-item-meta">${totalCandidates} candidates · ${totalBallots} ballots combined</span>
+      </div>
+      <div class="file-list-item-controls">
+        <div class="position-method-control">
+          <span class="seats-label">Voting Method</span>
+          <select class="position-method-select">${methodOptions}</select>
         </div>
-        <div class="file-list-item-controls">
-          <div class="position-method-control">
-            <span class="seats-label">Voting Method</span>
-            <select class="position-method-select">${methodOptions}</select>
+        <div class="seats-control">
+          <span class="seats-label">Seats</span>
+          <div class="seats-stepper">
+            <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+            <span class="seats-value">${leader.seats}</span>
+            <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
           </div>
-          <div class="seats-control">
-            <span class="seats-label">Seats</span>
-            <div class="seats-stepper">
-              <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
-              <span class="seats-value">${leader.seats}</span>
-              <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
-            </div>
-          </div>
-          <button type="button" class="combine-btn combined">Uncombine</button>
         </div>
-      `;
-      item.querySelector('.position-method-select').addEventListener('change', (e) => {
-        groupIndices.forEach(i => { loadedPositions[i].method = e.target.value; });
+        <button type="button" class="combine-btn combined">Uncombine</button>
+      </div>
+    `;
+    item.querySelector('.position-method-select').addEventListener('change', (e) => {
+      groupIndices.forEach(i => { loadedPositions[i].method = e.target.value; });
+    });
+    item.querySelectorAll('.seats-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = parseInt(btn.dataset.dir, 10);
+        const next = Math.min(10, Math.max(1, loadedPositions[groupIndices[0]].seats + dir));
+        groupIndices.forEach(i => { loadedPositions[i].seats = next; });
+        item.querySelector('.seats-value').textContent = next;
       });
-      item.querySelectorAll('.seats-step-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const dir = parseInt(btn.dataset.dir, 10);
-          const next = Math.min(10, Math.max(1, loadedPositions[groupIndices[0]].seats + dir));
-          groupIndices.forEach(i => { loadedPositions[i].seats = next; });
-          item.querySelector('.seats-value').textContent = next;
-        });
-      });
-      item.querySelector('.combine-btn').addEventListener('click', () => {
-        groupIndices.forEach(i => { loadedPositions[i].combine = false; });
-        renderFileList();
-      });
-      fileList.appendChild(item);
+    });
+    item.querySelector('.combine-btn').addEventListener('click', () => {
+      groupIndices.forEach(i => { loadedPositions[i].combine = false; });
+      renderFileList();
+    });
+    fileList.appendChild(item);
+  });
 
-    } else {
-      // Normal single-position row
-      const methodOptions = availableMethods.map(m =>
-        `<option value="${m}"${m === pos.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
-      ).join('');
+  // --- Pass 2: render remaining (non-combined) positions grouped by file ---
+  let lastFileName = null;
+  loadedPositions.forEach((pos, index) => {
+    if (!pos.seats) pos.seats = 1;
+    if (combinedIndices.has(index)) return;
 
-      const item = document.createElement('div');
-      item.className = 'file-list-item';
-
-      if (pos.fileName !== lastFileName) {
-        lastFileName = pos.fileName;
-        const groupHeader = document.createElement('div');
-        groupHeader.className = 'file-list-group-header';
-        groupHeader.textContent = fileGroupLabel(pos.fileName);
-        fileList.appendChild(groupHeader);
-      }
-
-      item.innerHTML = `
-        <div class="file-list-item-info">
-          <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
-          <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
-          <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
-        </div>
-        <div class="file-list-item-controls">
-          <div class="position-method-control">
-            <span class="seats-label">Voting Method</span>
-            <select class="position-method-select">${methodOptions}</select>
-          </div>
-          <div class="seats-control">
-            <span class="seats-label">Seats</span>
-            <div class="seats-stepper">
-              <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
-              <span class="seats-value">${pos.seats}</span>
-              <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
-            </div>
-          </div>
-          <button type="button" class="combine-btn${pos.combine ? ' combined' : ''}">${pos.combine ? 'Uncombine' : 'Combine'}</button>
-          <button class="btn-remove-file" type="button" title="Remove">✕</button>
-        </div>
-      `;
-      item.querySelector('.position-method-select').addEventListener('change', (e) => {
-        loadedPositions[index].method = e.target.value;
-      });
-      item.querySelectorAll('.seats-step-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const dir = parseInt(btn.dataset.dir, 10);
-          const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
-          loadedPositions[index].seats = next;
-          item.querySelector('.seats-value').textContent = next;
-        });
-      });
-      item.querySelector('.btn-remove-file').addEventListener('click', () => {
-        loadedPositions.splice(index, 1);
-        renderFileList();
-      });
-      item.querySelector('.combine-btn').addEventListener('click', () => {
-        const newVal = !loadedPositions[index].combine;
-        const titleKey = loadedPositions[index].title.toLowerCase();
-        loadedPositions.forEach((p, i) => {
-          if (p.title.toLowerCase() === titleKey) loadedPositions[i].combine = newVal;
-        });
-        renderFileList();
-      });
-      fileList.appendChild(item);
+    if (pos.fileName !== lastFileName) {
+      lastFileName = pos.fileName;
+      const groupHeader = document.createElement('div');
+      groupHeader.className = 'file-list-group-header';
+      groupHeader.textContent = fileGroupLabel(pos.fileName);
+      fileList.appendChild(groupHeader);
     }
+
+    const methodOptions = availableMethods.map(m =>
+      `<option value="${m}"${m === pos.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
+    ).join('');
+
+    const item = document.createElement('div');
+    item.className = 'file-list-item';
+    item.innerHTML = `
+      <div class="file-list-item-info">
+        <span class="file-list-item-title">${escapeHtml(pos.title)}</span>
+        <span class="file-list-item-meta">${pos.candidates.length} candidates · ${pos.ballots.length} ballots</span>
+        <span class="file-list-item-source">${escapeHtml(pos.fileName)}</span>
+      </div>
+      <div class="file-list-item-controls">
+        <div class="position-method-control">
+          <span class="seats-label">Voting Method</span>
+          <select class="position-method-select">${methodOptions}</select>
+        </div>
+        <div class="seats-control">
+          <span class="seats-label">Seats</span>
+          <div class="seats-stepper">
+            <button class="seats-step-btn" type="button" data-dir="-1">&#8722;</button>
+            <span class="seats-value">${pos.seats}</span>
+            <button class="seats-step-btn" type="button" data-dir="1">&#43;</button>
+          </div>
+        </div>
+        <button type="button" class="combine-btn">Combine</button>
+        <button class="btn-remove-file" type="button" title="Remove">✕</button>
+      </div>
+    `;
+    item.querySelector('.position-method-select').addEventListener('change', (e) => {
+      loadedPositions[index].method = e.target.value;
+    });
+    item.querySelectorAll('.seats-step-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dir = parseInt(btn.dataset.dir, 10);
+        const next = Math.min(10, Math.max(1, loadedPositions[index].seats + dir));
+        loadedPositions[index].seats = next;
+        item.querySelector('.seats-value').textContent = next;
+      });
+    });
+    item.querySelector('.btn-remove-file').addEventListener('click', () => {
+      loadedPositions.splice(index, 1);
+      renderFileList();
+    });
+    item.querySelector('.combine-btn').addEventListener('click', () => {
+      const titleKey = loadedPositions[index].title.toLowerCase();
+      loadedPositions.forEach((p, i) => {
+        if (p.title.toLowerCase() === titleKey) loadedPositions[i].combine = true;
+      });
+      renderFileList();
+    });
+    fileList.appendChild(item);
   });
 }
 
