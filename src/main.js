@@ -167,10 +167,12 @@ function buildRoundHTML(round, method) {
     }
     html += `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
   }
-  const statusParts = [];
-  if (round.elected && round.elected.length) statusParts.push(`<span class="elected">Elected: ${esc(round.elected.join(', '))}</span>`);
-  if (round.eliminated && round.eliminated.length) statusParts.push(`<span class="elim">Eliminated: ${esc(round.eliminated.join(', '))}</span>`);
-  if (statusParts.length) html += `<p class="status">${statusParts.join(' &nbsp;·&nbsp; ')}</p>`;
+  if (round.elected && round.elected.length) {
+    html += `<p class="status elected-line">&#10003; Elected: ${esc(round.elected.join(', '))}</p>`;
+  }
+  if (round.eliminated && round.eliminated.length) {
+    html += `<div class="elim-line"><span class="elim-label">&#10007; Eliminated: ${esc(round.eliminated.join(', '))}</span></div>`;
+  }
   return html;
 }
 
@@ -240,10 +242,10 @@ function buildResultsHTML(data) {
   th{background:#f5f5f5;text-align:left;padding:3px 8px;border:1px solid #ddd;font-weight:600}
   td{padding:3px 8px;border:1px solid #ddd}
   tr.winner-row td{font-weight:700;background:#f0fff4}
-  tr.elim-row td{color:#bbb}
-  .status{font-size:0.72rem;margin:2px 0 4px}
-  .elected{color:#28a745;font-weight:600}
-  .elim{color:#888}
+  tr.elim-row td{color:#bbb;text-decoration:line-through}
+  .elected-line{font-size:0.72rem;color:#28a745;font-weight:600;margin:3px 0}
+  .elim-line{border-top:2px solid #cc0000;margin:4px 0 6px;padding-top:3px}
+  .elim-label{font-size:0.72rem;color:#cc0000;font-weight:600}
   .pos-divider{border:none;border-top:1px solid #e0e0e0;margin:16px 0}
   .summary-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.82rem}
   .summary-table th{background:#cc0000;color:white;text-align:left;padding:5px 10px;font-weight:600}
