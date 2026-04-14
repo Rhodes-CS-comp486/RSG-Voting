@@ -1106,6 +1106,240 @@ footer p {
   }
 }
 
+/* ── Results Tabs ─────────────────────────────────────────────────────── */
+
+.results-tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 0;
+}
+
+.results-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 16px;
+  border: 1px solid #e0e0e0;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+  bottom: -2px;
+  transition: background 0.15s;
+  min-width: 100px;
+}
+
+.results-tab:hover {
+  background: #ececec;
+}
+
+.results-tab.active {
+  background: white;
+  border-color: #cc0000;
+  border-bottom-color: white;
+  z-index: 1;
+}
+
+.results-tab-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.results-tab.active .results-tab-title {
+  color: #cc0000;
+}
+
+.results-tab-winner {
+  font-size: 0.70rem;
+  color: #999;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.results-tab.active .results-tab-winner {
+  color: #888;
+}
+
+.results-tab-panels {
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 20px;
+  background: white;
+}
+
+.results-tab-panel {
+  display: none;
+}
+
+.results-tab-panel.active {
+  display: block;
+}
+
+.tab-panel-summary {
+  margin-bottom: 12px;
+}
+
+.tab-panel-stats {
+  margin-bottom: 16px;
+}
+
+.tab-panel-file-label {
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+/* Overall tab — collapsible class year sections */
+.overall-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.overall-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafafa;
+  cursor: pointer;
+  user-select: none;
+}
+
+.overall-section-header:hover {
+  background: #f0f0f0;
+}
+
+.overall-section-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.overall-chevron {
+  width: 16px;
+  height: 16px;
+  color: #aaa;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.overall-section.expanded .overall-chevron {
+  transform: rotate(180deg);
+}
+
+.overall-section-body {
+  padding: 4px 16px 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.overall-summary-list {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.overall-summary-divider {
+  border: none;
+  border-top: 2px solid #e8e8e8;
+  margin: 20px 0;
+}
+
+.overall-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.overall-row:last-child {
+  border-bottom: none;
+}
+
+.overall-row-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.overall-row-winner {
+  font-size: 0.85rem;
+  color: #cc0000;
+  font-weight: 500;
+}
+
+/* Collapsible position sections */
+.tab-position-section {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tab-position-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #cc0000;
+  padding: 10px 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab-position-header:hover {
+  background: #fafafa;
+}
+
+.tab-position-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tab-position-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.tab-position-winner {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #cc0000;
+}
+
+.tab-position-chevron {
+  width: 18px;
+  height: 18px;
+  color: #aaa;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.tab-position-section.expanded .tab-position-chevron {
+  transform: rotate(180deg);
+}
+
+.tab-position-body {
+  padding-top: 12px;
+}
+
+.tab-position-divider {
+  border: none;
+  border-top: 1px solid #e8e8e8;
+  margin: 16px 0;
+}
+
 @media print {
   /* Strip all background and sizing from root elements */
   body,
@@ -1186,6 +1420,29 @@ footer p {
     gap: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Tab layout: hide tab bar, show all panels stacked */
+  .results-tab-bar {
+    display: none !important;
+  }
+
+  .results-tab-panels {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .results-tab-panel {
+    display: block !important;
+    border-top: 2px solid #111 !important;
+    padding-top: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .tab-panel-summary {
+    margin: 2px 0 4px 0 !important;
+    padding: 2px 6px !important;
+    font-size: 0.78rem !important;
   }
 
   /* Remove all accordion box styling */
