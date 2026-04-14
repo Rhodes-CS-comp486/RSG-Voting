@@ -470,22 +470,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('export-pdf-btn').addEventListener('click', async () => {
-    // Expand all accordion bodies so they appear in the PDF
-    const bodies = document.querySelectorAll('.position-accordion-body');
-    const previousStates = Array.from(bodies).map(b => b.style.display);
-    bodies.forEach(b => { b.style.display = 'block'; });
-
-    const accordions = document.querySelectorAll('.position-accordion');
-    accordions.forEach(a => a.classList.add('expanded'));
-
-    const result = await window.electronAPI.exportPDF();
-
-    // Restore accordion states
-    bodies.forEach((b, i) => { b.style.display = previousStates[i]; });
-    accordions.forEach((a, i) => {
-      if (previousStates[i] === 'none') a.classList.remove('expanded');
-    });
-
+    if (!lastResult) return;
+    const result = await window.electronAPI.generatePDF(lastResult);
     if (!result.success && !result.canceled) {
       alert('Failed to export PDF: ' + result.error);
     }
@@ -500,7 +486,9 @@ function displayResults(result) {
     return;
   }
 
-  // Single position display
+  // Single position display — restore elements that multi-position may have hidden
+  document.getElementById('result-summary').style.display = '';
+  document.getElementById('result-stats').style.display = '';
   document.getElementById('results-title').textContent = result.title || 'Election Results';
 
   // Summary card
@@ -586,9 +574,8 @@ function displayResults(result) {
       statusHTML += `<p class="eliminated-text">Eliminated: ${round.eliminated.join(', ')}</p>`;
     }
 
-    const thresholdText = round.threshold != null ? `Threshold: ${round.threshold}` : 'Final';
     card.innerHTML = `
-      <h4>Round ${round.roundNumber} (${thresholdText})</h4>
+      <h4>Round ${round.roundNumber}</h4>
       ${rankTableHTML}
       ${statusHTML}`;
 
@@ -712,9 +699,8 @@ function displayPreferentialBlockBreakdown(result, container) {
       statusHTML = `<p class="eliminated-text">Tie — remaining seat(s) could not be determined</p>`;
     }
 
-    const thresholdText = round.threshold != null ? `Threshold: ${round.threshold}` : `top ${seats} preference${seats !== 1 ? 's' : ''} per ballot`;
     card.innerHTML = `
-      <h4>Round ${round.roundNumber} (${thresholdText})</h4>
+      <h4>Round ${round.roundNumber}</h4>
       ${rankTableHTML}
       ${statusHTML}`;
 
@@ -792,131 +778,220 @@ async function runMultiPositionElection(positions) {
 }
 
 function displayMultiPositionResults(results) {
-  // Page title
-  document.getElementById('results-title').textContent = 'Multi-Position Election Results';
+  document.getElementById('results-title').textContent = 'Election Results';
 
-  // Aggregate stats
-  const totalBallots = results.reduce((sum, r) => sum + r.totalBallots, 0);
-  const totalCandidates = results.reduce((sum, r) => sum + r.totalCandidates, 0);
+  // Hide global summary/stats — each tab panel has its own
+  document.getElementById('result-summary').style.display = 'none';
+  document.getElementById('result-stats').style.display = 'none';
 
-  document.getElementById('result-total-ballots').textContent = totalBallots;
-  document.getElementById('result-total-candidates').textContent = totalCandidates;
-
-  // Combined results appear first, preserve original order within each group
-  const sortedResults = [...results].sort((a, b) =>
-    (b.combinedFrom ? 1 : 0) - (a.combinedFrom ? 1 : 0) ||
-    results.indexOf(a) - results.indexOf(b)
-  );
-
-  // Group results by source file (combined results get their own group)
-  const fileGroups = [];
-  const fileMap = new Map();
-  sortedResults.forEach(result => {
-    if (result.combinedFrom) {
-      const groupKey = '__combined__' + result.combinedFrom.slice().sort().join('|');
-      if (!fileMap.has(groupKey)) {
-        const group = { fileName: groupKey, combinedFrom: result.combinedFrom, results: [] };
-        fileGroups.push(group);
-        fileMap.set(groupKey, group);
-      }
-      fileMap.get(groupKey).results.push(result);
-    } else {
-      const fn = result.fileName || 'Unknown File';
-      if (!fileMap.has(fn)) {
-        const group = { fileName: fn, combinedFrom: null, results: [] };
-        fileGroups.push(group);
-        fileMap.set(fn, group);
-      }
-      fileMap.get(fn).results.push(result);
-    }
-  });
-
-  // Summary of winners grouped by file
-  const summaryEl = document.getElementById('result-summary');
-  let summaryHTML = '<div class="multi-position-summary">';
-  fileGroups.forEach(group => {
-    const labelText = group.combinedFrom
-      ? 'Combined (' + group.combinedFrom.map(fileGroupLabel).join(', ') + ')'
-      : fileGroupLabel(group.fileName);
-    summaryHTML += `<p class="summary-file-label">${escapeHtml(labelText)}</p>`;
-    group.results.forEach(result => {
-      const winnerText = result.winners && result.winners.length > 0
-        ? result.winners.join(', ')
-        : 'Tie - Not All Seats Filled';
-      summaryHTML += `<p><strong>${result.title}:</strong> ${winnerText}</p>`;
-    });
-  });
-  summaryHTML += '</div>';
-  summaryEl.innerHTML = summaryHTML;
-
-  // Display rounds grouped by file
   const container = document.getElementById('rounds-container');
   container.innerHTML = '';
 
-  let positionIndex = 0;
-  fileGroups.forEach(group => {
-    const fileHeader = document.createElement('div');
-    const isCombined = !!group.combinedFrom;
-    fileHeader.className = isCombined
-      ? 'results-file-group-header results-file-group-header--combined'
-      : 'results-file-group-header';
-    fileHeader.textContent = isCombined
-      ? 'Combined (' + group.combinedFrom.map(fileGroupLabel).join(', ') + ')'
-      : fileGroupLabel(group.fileName);
-    container.appendChild(fileHeader);
+  // Group results by class year / file
+  const fileGroups = [];
+  const fileMap = new Map();
+  results.forEach(result => {
+    const key = result.combinedFrom
+      ? '__combined__' + result.combinedFrom.slice().sort().join('|')
+      : (result.fileName || 'Unknown');
+    if (!fileMap.has(key)) {
+      const label = result.combinedFrom
+        ? 'Combined (' + result.combinedFrom.map(fileGroupLabel).join(', ') + ')'
+        : fileGroupLabel(result.fileName || 'Unknown');
+      const group = { key, label, results: [] };
+      fileGroups.push(group);
+      fileMap.set(key, group);
+    }
+    fileMap.get(key).results.push(result);
+  });
 
-    group.results.forEach(result => {
-      positionIndex++;
-      const winnerPreview = result.winners && result.winners.length > 0
+  const tabBar = document.createElement('div');
+  tabBar.className = 'results-tab-bar';
+
+  const panelsWrapper = document.createElement('div');
+  panelsWrapper.className = 'results-tab-panels';
+
+  // ── Overall tab ──────────────────────────────────────────────────────
+  const overallTab = document.createElement('button');
+  overallTab.className = 'results-tab active';
+  overallTab.type = 'button';
+  overallTab.dataset.tabIndex = 'overall';
+  overallTab.innerHTML = `<span class="results-tab-title">Overall</span>`;
+  tabBar.appendChild(overallTab);
+
+  const overallPanel = document.createElement('div');
+  overallPanel.className = 'results-tab-panel active';
+  overallPanel.dataset.panelIndex = 'overall';
+
+  // Summary list at top
+  const summaryList = document.createElement('div');
+  summaryList.className = 'overall-summary-list';
+  results.forEach(result => {
+    const title = result.title ? result.title.charAt(0).toUpperCase() + result.title.slice(1) : 'Unknown';
+    const winnerText = result.winners && result.winners.length > 0 ? result.winners.join(', ') : 'Tie — Not All Seats Filled';
+    const row = document.createElement('div');
+    row.className = 'overall-row';
+    row.innerHTML = `<span class="overall-row-title">${escapeHtml(title)}</span><span class="overall-row-winner">${escapeHtml(winnerText)}</span>`;
+    summaryList.appendChild(row);
+  });
+  overallPanel.appendChild(summaryList);
+
+  const dividerAfterSummary = document.createElement('hr');
+  dividerAfterSummary.className = 'overall-summary-divider';
+  overallPanel.appendChild(dividerAfterSummary);
+
+  // Full breakdown for every position, no year grouping
+  results.forEach((result, posIdx) => {
+    const title = result.title
+      ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
+      : `Position ${posIdx + 1}`;
+    const winnerText = result.winners && result.winners.length > 0
+      ? result.winners.join(', ')
+      : 'Tie — Not All Seats Filled';
+
+    const posSection = document.createElement('div');
+    posSection.className = 'tab-position-section';
+
+    const posHeader = document.createElement('div');
+    posHeader.className = 'tab-position-header';
+    posHeader.innerHTML = `
+      <div class="tab-position-header-left">
+        <span class="tab-position-title">${escapeHtml(title)}</span>
+        <span class="tab-position-winner">${escapeHtml(winnerText)}</span>
+      </div>
+      <svg class="tab-position-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>`;
+    posSection.appendChild(posHeader);
+
+    const posBody = document.createElement('div');
+    posBody.className = 'tab-position-body';
+    posBody.style.display = 'none';
+
+    const statsEl = document.createElement('div');
+    statsEl.className = 'result-meta-bar tab-panel-stats';
+    statsEl.innerHTML = `
+      <span class="result-meta-chip">Ballots: <strong>${result.totalBallots}</strong></span>
+      <span class="result-meta-chip">Candidates: <strong>${result.totalCandidates}</strong></span>`;
+    posBody.appendChild(statsEl);
+
+    if (result.method === 'irv') {
+      displayIRVRounds(result, posBody);
+    } else if (result.method === 'borda') {
+      displayBordaResults(result, posBody);
+    } else if (result.method === 'preferential-block') {
+      displayPreferentialBlockBreakdown(result, posBody);
+    }
+
+    posSection.appendChild(posBody);
+
+    posHeader.addEventListener('click', () => {
+      const isHidden = posBody.style.display === 'none';
+      posBody.style.display = isHidden ? 'block' : 'none';
+      posSection.classList.toggle('expanded', isHidden);
+    });
+
+    overallPanel.appendChild(posSection);
+
+    if (posIdx < results.length - 1) {
+      const divider = document.createElement('hr');
+      divider.className = 'tab-position-divider';
+      overallPanel.appendChild(divider);
+    }
+  });
+
+  panelsWrapper.appendChild(overallPanel);
+
+  // ── Class year tabs ──────────────────────────────────────────────────
+  fileGroups.forEach((group, index) => {
+    const tab = document.createElement('button');
+    tab.className = 'results-tab';
+    tab.type = 'button';
+    tab.dataset.tabIndex = index;
+    tab.innerHTML = `<span class="results-tab-title">${escapeHtml(group.label)}</span>`;
+    tabBar.appendChild(tab);
+
+    const panel = document.createElement('div');
+    panel.className = 'results-tab-panel';
+    panel.dataset.panelIndex = index;
+
+    group.results.forEach((result, posIdx) => {
+      const title = result.title
+        ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
+        : `Position ${posIdx + 1}`;
+      const winnerText = result.winners && result.winners.length > 0
         ? result.winners.join(', ')
         : 'Tie — Not All Seats Filled';
 
-      const title = result.title
-        ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
-        : result.title;
+      // Collapsible position section
+      const posSection = document.createElement('div');
+      posSection.className = 'tab-position-section';
 
-      // Accordion card
-      const accordion = document.createElement('div');
-      accordion.className = 'position-accordion';
-      accordion.innerHTML = `
-        <div class="position-accordion-header">
-          <div class="position-accordion-left">
-            <span class="position-accordion-index">${positionIndex}</span>
-            <span class="position-accordion-title">${title}</span>
-          </div>
-          <div class="position-accordion-right">
-            <span class="position-winner-badge">${winnerPreview}</span>
-            <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-        </div>`;
+      const posHeader = document.createElement('div');
+      posHeader.className = 'tab-position-header';
+      posHeader.innerHTML = `
+        <div class="tab-position-header-left">
+          <span class="tab-position-title">${escapeHtml(title)}</span>
+          <span class="tab-position-winner">${escapeHtml(winnerText)}</span>
+        </div>
+        <svg class="tab-position-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>`;
+      posSection.appendChild(posHeader);
 
-      // Body — hidden by default
-      const body = document.createElement('div');
-      body.className = 'position-accordion-body';
-      body.style.display = 'none';
-      accordion.appendChild(body);
+      // Collapsible body
+      const posBody = document.createElement('div');
+      posBody.className = 'tab-position-body';
+      posBody.style.display = 'none';
 
-      // Render rounds into the body
+      const statsEl = document.createElement('div');
+      statsEl.className = 'result-meta-bar tab-panel-stats';
+      statsEl.innerHTML = `
+        <span class="result-meta-chip">Ballots: <strong>${result.totalBallots}</strong></span>
+        <span class="result-meta-chip">Candidates: <strong>${result.totalCandidates}</strong></span>`;
+      posBody.appendChild(statsEl);
+
       if (result.method === 'irv') {
-        displayIRVRounds(result, body);
+        displayIRVRounds(result, posBody);
       } else if (result.method === 'borda') {
-        displayBordaResults(result, body);
+        displayBordaResults(result, posBody);
       } else if (result.method === 'preferential-block') {
-        displayPreferentialBlockBreakdown(result, body);
+        displayPreferentialBlockBreakdown(result, posBody);
       }
 
-      // Toggle on header click
-      accordion.querySelector('.position-accordion-header').addEventListener('click', () => {
-        const isHidden = body.style.display === 'none';
-        body.style.display = isHidden ? 'block' : 'none';
-        accordion.classList.toggle('expanded', isHidden);
+      posSection.appendChild(posBody);
+
+      posHeader.addEventListener('click', () => {
+        const isHidden = posBody.style.display === 'none';
+        posBody.style.display = isHidden ? 'block' : 'none';
+        posSection.classList.toggle('expanded', isHidden);
       });
 
-      container.appendChild(accordion);
+      panel.appendChild(posSection);
+
+      if (posIdx < group.results.length - 1) {
+        const divider = document.createElement('hr');
+        divider.className = 'tab-position-divider';
+        panel.appendChild(divider);
+      }
     });
+
+    panelsWrapper.appendChild(panel);
   });
+
+  // Tab switching
+  tabBar.addEventListener('click', (e) => {
+    const tab = e.target.closest('.results-tab');
+    if (!tab) return;
+    const idx = tab.dataset.tabIndex;
+    tabBar.querySelectorAll('.results-tab').forEach(t => t.classList.remove('active'));
+    panelsWrapper.querySelectorAll('.results-tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    panelsWrapper.querySelector(`[data-panel-index="${idx}"]`).classList.add('active');
+  });
+
+  container.appendChild(tabBar);
+  container.appendChild(panelsWrapper);
 }
 
 // Helper functions to display IRV and Borda results for multi-position
@@ -975,9 +1050,8 @@ function displayIRVRounds(result, container) {
       statusHTML += `<p class="eliminated-text">Eliminated: ${round.eliminated.join(', ')}</p>`;
     }
 
-    const thresholdText = round.threshold != null ? `Threshold: ${round.threshold}` : 'Final';
     card.innerHTML = `
-      <h4>Round ${round.roundNumber} (${thresholdText})</h4>
+      <h4>Round ${round.roundNumber}</h4>
       ${rankTableHTML}
       ${statusHTML}`;
 

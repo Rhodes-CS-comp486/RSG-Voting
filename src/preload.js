@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   validateBallots: (data) => ipcRenderer.invoke('voting:validate-ballots', data),
   parseCSV: (csvContent) => ipcRenderer.invoke('voting:parse-csv', csvContent),
   exportPDF: () => ipcRenderer.invoke('results:export-pdf'),
+  generatePDF: (resultsData) => ipcRenderer.invoke('results:generate-pdf', resultsData),
 });

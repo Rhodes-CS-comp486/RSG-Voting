@@ -98,22 +98,161 @@ ipcMain.handle('voting:parse-csv', (event, csvContent) => {
   }
 });
 
-ipcMain.handle('results:export-pdf', async (event) => {
+ipcMain.handle('results:generate-pdf', async (event, resultsData) => {
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
     title: 'Save Election Results as PDF',
     defaultPath: 'election-results.pdf',
     filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
   });
   if (canceled || !filePath) return { success: false, canceled: true };
+
+  const os = require('os');
+  const tmpFile = path.join(os.tmpdir(), `rsg-results-${Date.now()}.html`);
+
   try {
-    const pdfData = await event.sender.printToPDF({
+    const html = buildResultsHTML(resultsData);
+    fs.writeFileSync(tmpFile, html, 'utf8');
+
+    const printWindow = new BrowserWindow({ show: false, webPreferences: { nodeIntegration: false } });
+    await printWindow.loadURL(`file://${tmpFile}`);
+
+    const pdfData = await printWindow.webContents.printToPDF({
       printBackground: true,
-      pageSize: 'A4',
-      margins: { marginType: 'none' }
+      pageSize: 'Letter',
+      margins: { top: 0.5, bottom: 0.5, left: 0.6, right: 0.6 }
     });
+
+    printWindow.close();
+    fs.unlinkSync(tmpFile);
     fs.writeFileSync(filePath, pdfData);
     return { success: true, filePath };
   } catch (error) {
+    try { fs.unlinkSync(tmpFile); } catch (_) {}
     return { success: false, error: error.message };
   }
 });
+
+function esc(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function classLabel(fileName) {
+  const m = (fileName || '').match(/class\s+of\s+(\d{4})/i);
+  return m ? `Class of ${m[1]}` : (fileName || '').replace(/\.[^/.]+$/, '');
+}
+
+function buildRoundHTML(round, method) {
+  let html = `<div class="round-label">Round ${round.roundNumber}</div>`;
+  if (round.rankDistribution) {
+    const candidates = Object.keys(round.rankDistribution);
+    const numCols = Math.max(...candidates.map(c => round.rankDistribution[c].length));
+    const electedSet = new Set(round.elected || []);
+    const eliminatedSet = new Set(round.eliminated || []);
+    let headers = '<th>Candidate</th>';
+    for (let i = 0; i < numCols; i++) {
+      const sfx = ['th','st','nd','rd'][Math.min(i+1,3)] || 'th';
+      headers += `<th>${i+1}${sfx} Choice</th>`;
+    }
+    if (method === 'irv') headers += '<th>Total</th>';
+    let rows = '';
+    for (const c of candidates) {
+      const counts = round.rankDistribution[c];
+      const rowCls = electedSet.has(c) ? ' class="winner-row"' : eliminatedSet.has(c) ? ' class="elim-row"' : '';
+      let cells = `<td>${esc(c)}</td>`;
+      let total = 0;
+      for (let i = 0; i < numCols; i++) { const v = counts[i] || 0; total += v; cells += `<td>${v}</td>`; }
+      if (method === 'irv') cells += `<td><strong>${total}</strong></td>`;
+      rows += `<tr${rowCls}>${cells}</tr>`;
+    }
+    html += `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  const statusParts = [];
+  if (round.elected && round.elected.length) statusParts.push(`<span class="elected">Elected: ${esc(round.elected.join(', '))}</span>`);
+  if (round.eliminated && round.eliminated.length) statusParts.push(`<span class="elim">Eliminated: ${esc(round.eliminated.join(', '))}</span>`);
+  if (statusParts.length) html += `<p class="status">${statusParts.join(' &nbsp;·&nbsp; ')}</p>`;
+  return html;
+}
+
+function buildPositionHTML(result) {
+  const title = result.title || 'Election';
+  const winnerText = result.winners && result.winners.length > 0
+    ? (result.winners.length === 1 ? result.winners[0] : result.winners.join(', '))
+    : 'Tie — Not All Seats Filled';
+
+  let breakdown = '';
+  if (result.method === 'borda' && result.scores) {
+    const scores = result.scores;
+    const sorted = Object.keys(scores).sort((a, b) => scores[b] - scores[a]);
+    const winnerSet = new Set(result.winners || []);
+    let rows = sorted.map(c => {
+      const cls = winnerSet.has(c) ? ' class="winner-row"' : '';
+      return `<tr${cls}><td>${esc(c)}</td><td>${scores[c]}</td></tr>`;
+    }).join('');
+    breakdown = `<table><thead><tr><th>Candidate</th><th>Points</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } else if (result.rounds) {
+    breakdown = result.rounds.map(r => buildRoundHTML(r, result.method)).join('');
+  }
+
+  return `
+    <div class="position">
+      <div class="pos-header">
+        <span class="pos-title">${esc(title)}</span>
+        <span class="pos-winner">${esc(winnerText)}</span>
+      </div>
+      <div class="pos-stats">${result.totalBallots} ballots &nbsp;·&nbsp; ${result.totalCandidates} candidates</div>
+      ${breakdown}
+    </div>`;
+}
+
+function buildResultsHTML(data) {
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  let body = '';
+
+  if (data.multiPosition) {
+    // Summary list at top
+    const summaryRows = data.results.map(r => {
+      const title = r.title || 'Unknown';
+      const winner = r.winners && r.winners.length > 0 ? r.winners.join(', ') : 'Tie — Not All Seats Filled';
+      return `<tr><td class="sum-title">${esc(title)}</td><td class="sum-winner">${esc(winner)}</td></tr>`;
+    }).join('');
+    body = `<table class="summary-table"><thead><tr><th>Position</th><th>Result</th></tr></thead><tbody>${summaryRows}</tbody></table><hr class="pos-divider">`;
+    // Full breakdown
+    body += data.results.map(buildPositionHTML).join('<hr class="pos-divider">');
+  } else {
+    body = buildPositionHTML(data);
+  }
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+  body{font-family:Arial,sans-serif;margin:40px;color:#222;font-size:12px;line-height:1.5}
+  h1{color:#cc0000;font-size:1.35rem;margin:0 0 2px}
+  .date{color:#888;font-size:0.78rem;margin-bottom:24px}
+  .class-section{margin-bottom:28px}
+  .class-heading{font-size:1rem;font-weight:700;border-bottom:2px solid #cc0000;padding-bottom:4px;margin-bottom:12px}
+  .position{margin-bottom:18px;padding-left:10px;border-left:3px solid #f0f0f0}
+  .pos-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+  .pos-title{font-weight:700;font-size:0.9rem}
+  .pos-winner{color:#cc0000;font-weight:600;font-size:0.82rem}
+  .pos-stats{color:#999;font-size:0.72rem;margin-bottom:6px}
+  .round-label{font-size:0.75rem;font-weight:700;color:#555;margin:6px 0 2px}
+  table{width:100%;border-collapse:collapse;font-size:0.72rem;margin-bottom:4px}
+  th{background:#f5f5f5;text-align:left;padding:3px 8px;border:1px solid #ddd;font-weight:600}
+  td{padding:3px 8px;border:1px solid #ddd}
+  tr.winner-row td{font-weight:700;background:#f0fff4}
+  tr.elim-row td{color:#bbb}
+  .status{font-size:0.72rem;margin:2px 0 4px}
+  .elected{color:#28a745;font-weight:600}
+  .elim{color:#888}
+  .pos-divider{border:none;border-top:1px solid #e0e0e0;margin:16px 0}
+  .summary-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.82rem}
+  .summary-table th{background:#cc0000;color:white;text-align:left;padding:5px 10px;font-weight:600}
+  .summary-table td{padding:5px 10px;border-bottom:1px solid #eee}
+  .sum-title{font-weight:600;color:#1a1a1a}
+  .sum-winner{color:#cc0000;font-weight:500}
+</style></head><body>
+  <h1>RSG Election Results</h1>
+  <p class="date">Generated ${date}</p>
+  ${body}
+</body></html>`;
+}
