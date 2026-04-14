@@ -109,7 +109,7 @@ ipcMain.handle('results:export-pdf', async (event) => {
     const pdfData = await event.sender.printToPDF({
       printBackground: true,
       pageSize: 'A4',
-      margins: { marginType: 'custom', top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }
+      margins: { marginType: 'none' }
     });
     fs.writeFileSync(filePath, pdfData);
     return { success: true, filePath };
