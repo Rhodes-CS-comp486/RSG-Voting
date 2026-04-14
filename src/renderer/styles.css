@@ -1107,10 +1107,21 @@ footer p {
 }
 
 @media print {
-  /* Reset background so the page prints white */
-  body {
+  /* Strip all background and sizing from root elements */
+  body,
+  .container,
+  .app-wrapper,
+  .content-area,
+  .main-panel {
     background: white !important;
-    min-height: unset;
+    min-height: unset !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 
   /* Hide everything except the results view */
@@ -1125,53 +1136,177 @@ footer p {
     display: none !important;
   }
 
-  /* Remove panel chrome for a clean printout */
-  .main-panel {
-    box-shadow: none !important;
-    border-radius: 0 !important;
+  /* Show and collapse results view */
+  #view-results-page {
+    display: block !important;
     padding: 0 !important;
     margin: 0 !important;
-    max-width: 100% !important;
   }
 
-  /* Make the results view always visible when printing */
-  #view-results {
-    display: block !important;
+  .welcome-section {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #results-title {
+    font-size: 1rem !important;
+    margin: 0 0 2px 0 !important;
+  }
+
+  #result-summary {
+    margin: 0 0 2px 0 !important;
+    padding: 2px 6px !important;
+    font-size: 0.78rem !important;
+    border-radius: 0 !important;
+  }
+
+  #result-summary h4 {
+    font-size: 0.78rem !important;
+    margin: 0 !important;
+  }
+
+  #result-summary p {
+    font-size: 0.78rem !important;
+    margin: 0 !important;
+  }
+
+  #result-stats {
+    margin: 0 0 4px 0 !important;
+    padding: 1px 0 !important;
+    gap: 6px !important;
+  }
+
+  .result-meta-chip {
+    font-size: 0.72rem !important;
+    padding: 1px 6px !important;
+  }
+
+  /* Zero out rounds container spacing */
+  #rounds-container {
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove all accordion box styling */
+  .position-accordion {
+    break-inside: auto;
+    break-before: auto;
+    break-after: auto;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: none !important;
+  }
+
+  .position-accordion:last-child {
+    border: none !important;
   }
 
   /* Expand all accordion bodies */
   .position-accordion-body {
     display: block !important;
+    padding-top: 0 !important;
   }
 
-  /* Keep accordion headers readable */
+  /* Remove header box, make title bold and dark */
   .position-accordion-header {
-    background: #f5f5f5 !important;
-    border: 1px solid #ddd !important;
-    break-inside: avoid;
+    background: none !important;
+    border: none !important;
+    border-bottom: 2px solid #111 !important;
+    break-inside: auto;
+    padding: 6px 0 4px !important;
   }
 
-  /* Avoid breaking a round card across pages */
+  .position-accordion-index {
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    color: #000 !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 6px 0 0 !important;
+    margin: 0 !important;
+  }
+
+  .position-accordion-title {
+    font-weight: 900 !important;
+    font-size: 1rem !important;
+    color: #000 !important;
+  }
+
+  /* Compact round cards */
   .round-card {
-    break-inside: avoid;
+    padding: 2px 0 !important;
+    border: none !important;
+    border-bottom: 1px solid #eee !important;
     box-shadow: none !important;
-    border: 1px solid #ddd !important;
+    margin: 0 !important;
   }
 
-  /* Keep each position accordion together when possible */
-  .position-accordion {
-    break-inside: avoid;
-    margin-bottom: 12px;
+  .round-card h4 {
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    margin: 0 0 2px 0 !important;
+  }
+
+  /* Compact rank table */
+  .rank-table-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .rank-table-wrapper h5 {
+    display: none !important;
+  }
+
+  .rank-table {
+    font-size: 0.72rem !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .rank-table th,
+  .rank-table td {
+    padding: 1px 4px !important;
+    border: 1px solid #ddd !important;
+    text-align: center !important;
+  }
+
+  .rank-table th {
+    background: #f0f0f0 !important;
+    font-weight: 700 !important;
+  }
+
+  .rank-table-candidate {
+    text-align: left !important;
+  }
+
+  .eliminated-text,
+  .winner-text {
+    font-size: 0.75rem !important;
+    margin: 1px 0 0 0 !important;
+  }
+
+  .results-file-group-header {
+    margin: 0 !important;
+    padding: 4px 0 2px !important;
+    break-after: auto;
+    font-weight: 800 !important;
+  }
+
+  /* Round cards: no box */
+  .round-card {
+    break-inside: auto;
+    box-shadow: none !important;
+    border: none !important;
+    border-bottom: 1px solid #eee !important;
+    margin-bottom: 0 !important;
   }
 
   /* Hide the chevron since accordions are all expanded */
   .accordion-chevron {
     display: none !important;
-  }
-
-  /* Keep file group header with its first accordion */
-  .results-file-group-header {
-    break-after: avoid;
   }
 }
 
