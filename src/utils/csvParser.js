@@ -58,9 +58,7 @@ function parseQualtricsCSV(csvContent) {
     // Step 4: Extract ballot data (skip rows 0-2, start from row 3)
     const ballotRows = rows.slice(3).filter(row => row.length > 0);
 
-    if (ballotRows.length === 0) {
-      return { success: false, positions: null, error: 'No ballot data found in CSV.' };
-    }
+    // Allow empty ballot rows — elections with no responses should still show candidates
 
     // Detect Yes/No (or any single-choice) vote columns not already handled
     // These are columns where all non-empty values are the same small set of options (e.g. Yes/No)

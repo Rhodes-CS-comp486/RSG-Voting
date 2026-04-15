@@ -12,7 +12,23 @@ class ElectionEngine {
   }
 
   runElection(config) {
-    const { title, candidates, method, ballots, seats = 1 } = config;
+    const { title, candidates, method, seats = 1 } = config;
+
+    // Filter out empty or invalid ballots instead of crashing
+    const ballots = (config.ballots || []).filter(b => Array.isArray(b) && b.length > 0);
+
+    if (ballots.length === 0) {
+      return {
+        title,
+        method,
+        winners: [],
+        summary: 'No valid ballots were cast.',
+        totalBallots: 0,
+        totalCandidates: (candidates || []).length,
+        rounds: [],
+        timestamp: new Date().toISOString()
+      };
+    }
 
     const votingMethod = this.methods.get(method);
     if (!votingMethod) {
