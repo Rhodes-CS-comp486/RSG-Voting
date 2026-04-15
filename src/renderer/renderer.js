@@ -59,6 +59,14 @@ async function handleFileLoad(file) {
         renderFileList();
         return;
       }
+
+      // Qualtrics format detected but no positions parsed — could be all empty ballots
+      if (parseResult.success && parseResult.positions.length === 0) {
+        const errBox = document.getElementById('validation-errors');
+        errBox.textContent = `No positions found in "${file.name}". The file may have no candidates listed.`;
+        errBox.style.display = 'block';
+        return;
+      }
     }
 
     // Fall back to simple CANDIDATES/BALLOTS format
@@ -66,7 +74,7 @@ async function handleFileLoad(file) {
 
     if (candidates.length === 0 && ballots.length === 0) {
       const errBox = document.getElementById('validation-errors');
-      errBox.textContent = `Could not parse any candidates or ballots from "${file.name}". Check the file format.`;
+      errBox.textContent = `Could not parse any candidates or ballots from "${file.name}". The file may be empty or all ballots were blank.`;
       errBox.style.display = 'block';
       return;
     }
