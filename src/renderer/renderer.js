@@ -718,6 +718,8 @@ async function runMultiPositionElection(positions) {
       const key = pos.title.toLowerCase();
       if (combineGroups.has(key)) {
         const existing = effectivePositions[combineGroups.get(key)];
+        // Merge candidate lists so ballots from all files are valid
+        existing.candidates = [...new Set([...existing.candidates, ...pos.candidates])];
         existing.ballots = existing.ballots.concat(pos.ballots);
         existing.combinedFrom.push(pos.fileName);
       } else {
