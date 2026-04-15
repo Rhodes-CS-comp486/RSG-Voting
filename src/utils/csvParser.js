@@ -11,7 +11,7 @@
 function parseQualtricsCSV(csvContent) {
   try {
     // Step 1: Parse CSV into rows/columns
-    const lines = csvContent.split('\n').filter(line => line.trim() !== '');
+    const lines = csvContent.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) {
       return { success: false, positions: null, error: 'CSV file is too short.' };
     }
@@ -31,7 +31,7 @@ function parseQualtricsCSV(csvContent) {
 
       // Extract position name and candidate ID from header
       // Format: "Please Rank... Vice President. - VP 1"
-      const match = header.match(/Please.*?(?:for|of)\s+(?:the\s+)?(.+?)\.?\s*-\s*(.+)$/);
+      const match = header.trim().match(/Please.*?(?:for|of)\s+(?:the\s+)?(.+?)\.?\s*-\s*(.+)$/);
       if (!match) {
         console.log('[CSV Parser] Header did not match pattern:', header);
         return;
@@ -46,7 +46,7 @@ function parseQualtricsCSV(csvContent) {
       }
 
       positionColumns[cleanPosition].push({
-        candidateId: cleanCandidate,
+        candidateId: cleanCandidate.trim(),
         columnIndex: colIndex
       });
     });
@@ -158,7 +158,13 @@ function parseCSVLine(line) {
     const char = line[i];
 
     if (char === '"') {
-      inQuotes = !inQuotes;
+      // Handle escaped double-quotes ("") inside quoted fields
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // skip next quote
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       result.push(current);
       current = '';
