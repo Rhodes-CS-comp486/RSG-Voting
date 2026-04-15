@@ -219,8 +219,26 @@ function buildResultsHTML(data) {
       return `<tr><td class="sum-title">${esc(title)}</td><td class="sum-winner">${esc(winner)}</td></tr>`;
     }).join('');
     body = `<table class="summary-table"><thead><tr><th>Position</th><th>Result</th></tr></thead><tbody>${summaryRows}</tbody></table><hr class="pos-divider">`;
-    // Full breakdown
-    body += data.results.map(buildPositionHTML).join('<hr class="pos-divider">');
+
+    // Group results by class/file and add headings
+    const fileGroups = [];
+    const fileMap = new Map();
+    data.results.forEach(result => {
+      const key = result.fileName || 'Unknown';
+      if (!fileMap.has(key)) {
+        const group = { label: classLabel(key), results: [] };
+        fileMap.set(key, group);
+        fileGroups.push(group);
+      }
+      fileMap.get(key).results.push(result);
+    });
+
+    body += fileGroups.map(group => `
+      <div class="class-section">
+        <div class="class-heading">${esc(group.label)}</div>
+        ${group.results.map(buildPositionHTML).join('<hr class="pos-divider">')}
+      </div>
+    `).join('');
   } else {
     body = buildPositionHTML(data);
   }
@@ -247,9 +265,9 @@ function buildResultsHTML(data) {
   .elim-line{border-top:2px solid #cc0000;margin:4px 0 6px;padding-top:3px}
   .elim-label{font-size:0.72rem;color:#cc0000;font-weight:600}
   .pos-divider{border:none;border-top:1px solid #e0e0e0;margin:16px 0}
-  .summary-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.82rem}
-  .summary-table th{background:#cc0000;color:white;text-align:left;padding:5px 10px;font-weight:600}
-  .summary-table td{padding:5px 10px;border-bottom:1px solid #eee}
+  .summary-table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:0.72rem}
+  .summary-table th{background:#cc0000;color:white;text-align:left;padding:2px 6px;font-weight:600}
+  .summary-table td{padding:2px 6px;border-bottom:1px solid #eee}
   .sum-title{font-weight:600;color:#1a1a1a}
   .sum-winner{color:#cc0000;font-weight:500}
 </style></head><body>

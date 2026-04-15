@@ -1546,10 +1546,23 @@ footer p {
   }
 
   .results-file-group-header {
-    margin: 0 !important;
-    padding: 4px 0 2px !important;
+    margin: 12px 0 4px 0 !important;
+    padding: 4px 0 4px 0 !important;
+    break-before: auto;
     break-after: auto;
-    font-weight: 800 !important;
+    font-weight: 900 !important;
+    font-size: 1.1rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: #000 !important;
+    background: none !important;
+    border: none !important;
+    border-bottom: 2px solid #000 !important;
+    text-decoration: none !important;
+  }
+
+  .results-file-group-header:first-child {
+    margin-top: 0 !important;
   }
 
   /* Round cards: no box */
