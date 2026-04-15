@@ -1,6 +1,6 @@
 {
-  "name": "temp-app",
-  "productName": "temp-app",
+  "name": "RSG-Voting",
+  "productName": "RSG-Voting",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": "src/index.js",

@@ -114,6 +114,7 @@ function renderFileList() {
   // --- Pass 1: render combined groups first (at the top, no file headers) ---
   const combinedIndices = new Set(); // all indices absorbed into a combined row
   const seenCombineTitles = new Set();
+  let combinedHeaderAdded = false;
 
   loadedPositions.forEach((pos, index) => {
     if (!pos.combine) return;
@@ -144,6 +145,14 @@ function renderFileList() {
     const methodOptions = availableMethods.map(m =>
       `<option value="${m}"${m === leader.method ? ' selected' : ''}>${escapeHtml(METHOD_DISPLAY_NAMES[m] || m.toUpperCase())}</option>`
     ).join('');
+
+    if (!combinedHeaderAdded) {
+      const header = document.createElement('div');
+      header.className = 'file-list-group-header file-list-group-header--combined';
+      header.textContent = 'Combined Ballots';
+      fileList.appendChild(header);
+      combinedHeaderAdded = true;
+    }
 
     const item = document.createElement('div');
     item.className = 'file-list-item file-list-item--combined';
