@@ -220,13 +220,21 @@ function buildResultsHTML(data) {
     }).join('');
     body = `<table class="summary-table"><thead><tr><th>Position</th><th>Result</th></tr></thead><tbody>${summaryRows}</tbody></table><hr class="pos-divider">`;
 
-    // Group results by class/file and add headings
+    // Group results by class/file and add headings (combined groups go first)
     const fileGroups = [];
     const fileMap = new Map();
+
+    const hasCombined = data.results.some(r => r.combinedFrom);
+    if (hasCombined) {
+      const combinedGroup = { label: 'Combined Ballots', results: [], isCombined: true };
+      fileMap.set('__combined__', combinedGroup);
+      fileGroups.push(combinedGroup);
+    }
+
     data.results.forEach(result => {
-      const key = result.fileName || 'Unknown';
+      const key = result.combinedFrom ? '__combined__' : (result.fileName || 'Unknown');
       if (!fileMap.has(key)) {
-        const group = { label: classLabel(key), results: [] };
+        const group = { label: classLabel(result.fileName || 'Unknown'), results: [] };
         fileMap.set(key, group);
         fileGroups.push(group);
       }
