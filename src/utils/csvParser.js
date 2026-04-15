@@ -12,8 +12,8 @@ function parseQualtricsCSV(csvContent) {
   try {
     // Step 1: Parse CSV into rows/columns
     const lines = csvContent.split('\n').filter(line => line.trim() !== '');
-    if (lines.length < 4) {
-      return { success: false, positions: null, error: 'CSV file is too short. Expected at least 4 rows.' };
+    if (lines.length < 2) {
+      return { success: false, positions: null, error: 'CSV file is too short.' };
     }
 
     const rows = lines.map(line => parseCSVLine(line));
@@ -56,9 +56,8 @@ function parseQualtricsCSV(csvContent) {
     Object.values(positionColumns).forEach(cols => cols.forEach(c => usedColIndices.add(c.columnIndex)));
 
     // Step 4: Extract ballot data (skip rows 0-2, start from row 3)
-    const ballotRows = rows.slice(3).filter(row => row.length > 0);
-
-    // Allow empty ballot rows — elections with no responses should still show candidates
+    // If fewer than 4 rows exist, there are no responses — that's OK, candidates still load
+    const ballotRows = rows.length > 3 ? rows.slice(3).filter(row => row.length > 0) : [];
 
     // Detect Yes/No (or any single-choice) vote columns not already handled
     // These are columns where all non-empty values are the same small set of options (e.g. Yes/No)
