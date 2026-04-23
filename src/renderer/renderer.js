@@ -830,108 +830,17 @@ function displayMultiPositionResults(results) {
   const panelsWrapper = document.createElement('div');
   panelsWrapper.className = 'results-tab-panels';
 
-  // ── Overall tab ──────────────────────────────────────────────────────
-  const overallTab = document.createElement('button');
-  overallTab.className = 'results-tab active';
-  overallTab.type = 'button';
-  overallTab.dataset.tabIndex = 'overall';
-  overallTab.innerHTML = `<span class="results-tab-title">Overall</span>`;
-  tabBar.appendChild(overallTab);
-
-  const overallPanel = document.createElement('div');
-  overallPanel.className = 'results-tab-panel active';
-  overallPanel.dataset.panelIndex = 'overall';
-
-  // Summary list at top
-  const summaryList = document.createElement('div');
-  summaryList.className = 'overall-summary-list';
-  results.forEach(result => {
-    const title = result.title ? result.title.charAt(0).toUpperCase() + result.title.slice(1) : 'Unknown';
-    const winnerText = result.winners && result.winners.length > 0 ? result.winners.join(', ') : 'Tie — Not All Seats Filled';
-    const row = document.createElement('div');
-    row.className = 'overall-row';
-    row.innerHTML = `<span class="overall-row-title">${escapeHtml(title)}</span><span class="overall-row-winner">${escapeHtml(winnerText)}</span>`;
-    summaryList.appendChild(row);
-  });
-  overallPanel.appendChild(summaryList);
-
-  const dividerAfterSummary = document.createElement('hr');
-  dividerAfterSummary.className = 'overall-summary-divider';
-  overallPanel.appendChild(dividerAfterSummary);
-
-  // Full breakdown for every position, no year grouping
-  results.forEach((result, posIdx) => {
-    const title = result.title
-      ? result.title.charAt(0).toUpperCase() + result.title.slice(1)
-      : `Position ${posIdx + 1}`;
-    const winnerText = result.winners && result.winners.length > 0
-      ? result.winners.join(', ')
-      : 'Tie — Not All Seats Filled';
-
-    const posSection = document.createElement('div');
-    posSection.className = 'tab-position-section';
-
-    const posHeader = document.createElement('div');
-    posHeader.className = 'tab-position-header';
-    posHeader.innerHTML = `
-      <div class="tab-position-header-left">
-        <span class="tab-position-title">${escapeHtml(title)}</span>
-        <span class="tab-position-winner">${escapeHtml(winnerText)}</span>
-      </div>
-      <svg class="tab-position-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>`;
-    posSection.appendChild(posHeader);
-
-    const posBody = document.createElement('div');
-    posBody.className = 'tab-position-body';
-    posBody.style.display = 'none';
-
-    const statsEl = document.createElement('div');
-    statsEl.className = 'result-meta-bar tab-panel-stats';
-    statsEl.innerHTML = `
-      <span class="result-meta-chip">Ballots: <strong>${result.totalBallots}</strong></span>
-      <span class="result-meta-chip">Candidates: <strong>${result.totalCandidates}</strong></span>`;
-    posBody.appendChild(statsEl);
-
-    if (result.method === 'irv') {
-      displayIRVRounds(result, posBody);
-    } else if (result.method === 'borda') {
-      displayBordaResults(result, posBody);
-    } else if (result.method === 'preferential-block') {
-      displayPreferentialBlockBreakdown(result, posBody);
-    }
-
-    posSection.appendChild(posBody);
-
-    posHeader.addEventListener('click', () => {
-      const isHidden = posBody.style.display === 'none';
-      posBody.style.display = isHidden ? 'block' : 'none';
-      posSection.classList.toggle('expanded', isHidden);
-    });
-
-    overallPanel.appendChild(posSection);
-
-    if (posIdx < results.length - 1) {
-      const divider = document.createElement('hr');
-      divider.className = 'tab-position-divider';
-      overallPanel.appendChild(divider);
-    }
-  });
-
-  panelsWrapper.appendChild(overallPanel);
-
   // ── Class year tabs ──────────────────────────────────────────────────
   fileGroups.forEach((group, index) => {
     const tab = document.createElement('button');
-    tab.className = 'results-tab';
+    tab.className = index === 0 ? 'results-tab active' : 'results-tab';
     tab.type = 'button';
     tab.dataset.tabIndex = index;
     tab.innerHTML = `<span class="results-tab-title">${escapeHtml(group.label)}</span>`;
     tabBar.appendChild(tab);
 
     const panel = document.createElement('div');
-    panel.className = 'results-tab-panel';
+    panel.className = index === 0 ? 'results-tab-panel active' : 'results-tab-panel';
     panel.dataset.panelIndex = index;
 
     group.results.forEach((result, posIdx) => {
