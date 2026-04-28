@@ -1,3 +1,5 @@
+const CROWN_SVG = ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>';
+
 let lastResult = null;
 let electionCount = 0;
 let parsedCandidates = [];
@@ -561,7 +563,7 @@ function displayBordaBreakdown(result, container) {
   for (const candidate of candidates) {
     const isWinner = winnerSet.has(candidate);
     const dist = rankDist[candidate] || [];
-    const crownHTML = isWinner ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+    const crownHTML = isWinner ? CROWN_SVG : '';
     let cells = `<td class="rank-table-candidate${isWinner ? ' borda-winner-label' : ''}">${candidate}${crownHTML}</td>`;
     for (let i = 0; i < numPositions; i++) {
       cells += `<td>${dist[i] || 0}</td>`;
@@ -663,7 +665,7 @@ function displayPreferentialBlockBreakdown(result, container) {
         const totalCounted = round.tallies[candidate] || 0;
 
         const nameClass = `rank-table-candidate${isElected ? ' pbv-winner-label' : ''}`;
-        const crownHTML = isElected ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+        const crownHTML = isElected ? CROWN_SVG : '';
         let cells = `<td class="${nameClass}">${candidate}${crownHTML}</td>`;
         for (let i = 0; i < numPositions; i++) {
           const count = counts[i] || 0;
@@ -949,6 +951,7 @@ function displayIRVRounds(result, container, { showTotal = false } = {}) {
     container.appendChild(initCard);
   }
 
+
   result.rounds.forEach(round => {
     const card = document.createElement('div');
     card.className = 'round-card';
@@ -973,7 +976,7 @@ function displayIRVRounds(result, container, { showTotal = false } = {}) {
       for (const candidate of candidates) {
         const counts = round.rankDistribution[candidate];
         const isElected = electedSet.has(candidate);
-        const crownHTML = isElected ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+        const crownHTML = isElected ? CROWN_SVG : '';
         let cells = `<td class="rank-table-candidate${isElected ? ' borda-winner-label' : ''}">${candidate}${crownHTML}</td>`;
         let total = 0;
         for (let i = 0; i < numPositions; i++) {
@@ -1033,7 +1036,7 @@ function displayBordaResults(result, container) {
   for (const [candidate, ] of sortedEntries) {
     const dist = distribution[candidate] || [];
     const isWinner = winnerSet.has(candidate);
-    const crownHTML = isWinner ? ' <svg class="winner-crown" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20l-2-10-5 5-3-8-3 8-5-5z"/><rect x="2" y="20" width="20" height="2" rx="1"/></svg>' : '';
+    const crownHTML = isWinner ? CROWN_SVG : '';
     let cells = `<td class="rank-table-candidate ${isWinner ? 'borda-winner' : ''}">${candidate}${crownHTML}</td>`;
     for (let i = 1; i <= numCandidates; i++) {
       cells += `<td>${dist[i] || 0}</td>`;
