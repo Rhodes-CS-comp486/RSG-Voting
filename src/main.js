@@ -142,31 +142,39 @@ function classLabel(fileName) {
   return m ? `Class of ${m[1]}` : (fileName || '').replace(/\.[^/.]+$/, '');
 }
 
+function buildRankTable(round, method, { showEliminated = true, showElected = true } = {}) {
+  if (!round.rankDistribution) return '';
+  const candidates = Object.keys(round.rankDistribution);
+  const numCols = Math.max(...candidates.map(c => round.rankDistribution[c].length));
+  const electedSet = new Set(round.elected || []);
+  const eliminatedSet = new Set(round.eliminated || []);
+  let headers = '<th>Candidate</th>';
+  for (let i = 0; i < numCols; i++) {
+    const sfx = ['th','st','nd','rd'][Math.min(i+1,3)] || 'th';
+    headers += `<th>${i+1}${sfx} Choice</th>`;
+  }
+  if (method === 'irv') headers += '<th>Total</th>';
+  let rows = '';
+  for (const c of candidates) {
+    const counts = round.rankDistribution[c];
+    const rowCls = (showElected && electedSet.has(c)) ? ' class="winner-row"'
+      : (showEliminated && eliminatedSet.has(c)) ? ' class="elim-row"' : '';
+    let cells = `<td>${esc(c)}</td>`;
+    let total = 0;
+    for (let i = 0; i < numCols; i++) { const v = counts[i] || 0; total += v; cells += `<td>${v}</td>`; }
+    if (method === 'irv') cells += `<td><strong>${total}</strong></td>`;
+    rows += `<tr${rowCls}>${cells}</tr>`;
+  }
+  return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function buildInitialDistributionHTML(round, method) {
+  return `<div class="round-label">Initial Distribution</div>${buildRankTable(round, method, { showEliminated: false, showElected: false })}`;
+}
+
 function buildRoundHTML(round, method) {
   let html = `<div class="round-label">Round ${round.roundNumber}</div>`;
-  if (round.rankDistribution) {
-    const candidates = Object.keys(round.rankDistribution);
-    const numCols = Math.max(...candidates.map(c => round.rankDistribution[c].length));
-    const electedSet = new Set(round.elected || []);
-    const eliminatedSet = new Set(round.eliminated || []);
-    let headers = '<th>Candidate</th>';
-    for (let i = 0; i < numCols; i++) {
-      const sfx = ['th','st','nd','rd'][Math.min(i+1,3)] || 'th';
-      headers += `<th>${i+1}${sfx} Choice</th>`;
-    }
-    if (method === 'irv') headers += '<th>Total</th>';
-    let rows = '';
-    for (const c of candidates) {
-      const counts = round.rankDistribution[c];
-      const rowCls = electedSet.has(c) ? ' class="winner-row"' : eliminatedSet.has(c) ? ' class="elim-row"' : '';
-      let cells = `<td>${esc(c)}</td>`;
-      let total = 0;
-      for (let i = 0; i < numCols; i++) { const v = counts[i] || 0; total += v; cells += `<td>${v}</td>`; }
-      if (method === 'irv') cells += `<td><strong>${total}</strong></td>`;
-      rows += `<tr${rowCls}>${cells}</tr>`;
-    }
-    html += `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-  }
+  html += buildRankTable(round, method, { showEliminated: true });
   if (round.elected && round.elected.length) {
     html += `<p class="status elected-line">&#10003; Elected: ${esc(round.elected.join(', '))}</p>`;
   }
@@ -192,8 +200,9 @@ function buildPositionHTML(result) {
       return `<tr${cls}><td>${esc(c)}</td><td>${scores[c]}</td></tr>`;
     }).join('');
     breakdown = `<table><thead><tr><th>Candidate</th><th>Points</th></tr></thead><tbody>${rows}</tbody></table>`;
-  } else if (result.rounds) {
-    breakdown = result.rounds.map(r => buildRoundHTML(r, result.method)).join('');
+  } else if (result.rounds && result.rounds.length) {
+    breakdown = buildInitialDistributionHTML(result.rounds[0], result.method)
+      + result.rounds.map(r => buildRoundHTML(r, result.method)).join('');
   }
 
   return `

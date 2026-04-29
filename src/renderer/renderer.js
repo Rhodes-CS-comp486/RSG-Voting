@@ -539,7 +539,7 @@ function displayResults(result) {
     return;
   }
 
-  renderIRVRounds(result, container);
+  displayIRVRounds(result, container);
 }
 
 function displayBordaBreakdown(result, container) {
@@ -591,6 +591,50 @@ function displayPreferentialBlockBreakdown(result, container) {
   const seats = result.seats;
   const winnerSet = new Set(result.winners);
 
+  const firstRound = result.rounds[0];
+  if (firstRound && firstRound.rankDistribution) {
+    const initCard = document.createElement('div');
+    initCard.className = 'round-card';
+
+    const candidates = Object.keys(firstRound.rankDistribution).sort((a, b) =>
+      (firstRound.tallies[b] || 0) - (firstRound.tallies[a] || 0)
+    );
+    const numPositions = Math.max(...candidates.map(c => firstRound.rankDistribution[c].length));
+
+    let headerCells = '<th>Candidate</th>';
+    for (let i = 0; i < numPositions; i++) {
+      const counted = i < seats;
+      headerCells += `<th class="${counted ? 'pbv-counted-header' : ''}">${i + 1}${ordinalSuffix(i + 1)}</th>`;
+    }
+    headerCells += '<th class="pbv-total-header">Total Counted</th>';
+
+    let bodyRows = '';
+    for (const candidate of candidates) {
+      const counts = firstRound.rankDistribution[candidate];
+      const totalCounted = firstRound.tallies[candidate] || 0;
+      let cells = `<td class="rank-table-candidate">${candidate}</td>`;
+      for (let i = 0; i < numPositions; i++) {
+        const count = counts[i] || 0;
+        const counted = i < seats;
+        cells += `<td class="${counted ? 'rank-first pbv-counted-cell' : ''}">${count}</td>`;
+      }
+      cells += `<td class="pbv-total-votes">${totalCounted}</td>`;
+      bodyRows += `<tr>${cells}</tr>`;
+    }
+
+    initCard.innerHTML = `
+      <h4>Initial Distribution</h4>
+      <div class="rank-table-wrapper">
+        <h5>Ranking Distribution &nbsp;<span class="pbv-counted-note">(highlighted columns count toward total)</span></h5>
+        <table class="rank-table">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>`;
+
+    container.appendChild(initCard);
+  }
+
   result.rounds.forEach((round, idx) => {
     const card = document.createElement('div');
     card.className = 'round-card';
@@ -601,13 +645,11 @@ function displayPreferentialBlockBreakdown(result, container) {
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
-      // Sort by total votes counted this round (descending)
-      const candidates = Object.keys(round.rankDistribution).sort((a, b) => {
-        return (round.tallies[b] || 0) - (round.tallies[a] || 0);
-      });
+      const candidates = Object.keys(round.rankDistribution).sort((a, b) =>
+        (round.tallies[b] || 0) - (round.tallies[a] || 0)
+      );
       const numPositions = Math.max(...candidates.map(c => round.rankDistribution[c].length));
 
-      // Header — highlight the columns that count toward the total
       let headerCells = '<th>Candidate</th>';
       for (let i = 0; i < numPositions; i++) {
         const counted = i < seats;
@@ -615,7 +657,6 @@ function displayPreferentialBlockBreakdown(result, container) {
       }
       headerCells += '<th class="pbv-total-header">Total Counted</th>';
 
-      // Body rows
       let bodyRows = '';
       for (const candidate of candidates) {
         const counts = round.rankDistribution[candidate];
@@ -822,7 +863,7 @@ function displayMultiPositionResults(results) {
       posBody.appendChild(statsEl);
 
       if (result.method === 'irv') {
-        renderIRVRounds(result, posBody);
+        displayIRVRounds(result, posBody, { showTotal: true });
       } else if (result.method === 'borda') {
         displayBordaResults(result, posBody);
       } else if (result.method === 'preferential-block') {
@@ -864,7 +905,53 @@ function displayMultiPositionResults(results) {
   container.appendChild(panelsWrapper);
 }
 
-function renderIRVRounds(result, container) {
+// Shared renderer for IRV round cards (single- and multi-position).
+// showTotal: add a running first-rank total column (used for multi-position display).
+function displayIRVRounds(result, container, { showTotal = false } = {}) {
+  const firstRound = result.rounds[0];
+  if (firstRound && firstRound.rankDistribution) {
+    const initCard = document.createElement('div');
+    initCard.className = 'round-card';
+
+    const candidates = Object.keys(firstRound.rankDistribution).sort((a, b) =>
+      (firstRound.rankDistribution[b][0] || 0) - (firstRound.rankDistribution[a][0] || 0)
+    );
+    const numPositions = Math.max(...candidates.map(c => firstRound.rankDistribution[c].length));
+
+    let headerCells = '<th>Candidate</th>';
+    for (let i = 0; i < numPositions; i++) {
+      headerCells += `<th>${i + 1}${ordinalSuffix(i + 1)}</th>`;
+    }
+    if (showTotal) headerCells += '<th>Total</th>';
+
+    let bodyRows = '';
+    for (const candidate of candidates) {
+      const counts = firstRound.rankDistribution[candidate];
+      let cells = `<td class="rank-table-candidate">${candidate}</td>`;
+      let total = 0;
+      for (let i = 0; i < numPositions; i++) {
+        const count = counts[i] || 0;
+        total += count;
+        cells += `<td class="${i === 0 ? 'rank-first' : ''}">${count}</td>`;
+      }
+      if (showTotal) cells += `<td class="rank-total">${total}</td>`;
+      bodyRows += `<tr>${cells}</tr>`;
+    }
+
+    initCard.innerHTML = `
+      <h4>Initial Distribution</h4>
+      <div class="rank-table-wrapper">
+        <h5>Ranking Distribution</h5>
+        <table class="rank-table">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </div>`;
+
+    container.appendChild(initCard);
+  }
+
+
   result.rounds.forEach(round => {
     const card = document.createElement('div');
     card.className = 'round-card';
@@ -874,16 +961,16 @@ function renderIRVRounds(result, container) {
 
     let rankTableHTML = '';
     if (round.rankDistribution) {
-      const candidates = Object.keys(round.rankDistribution).sort((a, b) => {
-        return (round.rankDistribution[b][0] || 0) - (round.rankDistribution[a][0] || 0);
-      });
+      const candidates = Object.keys(round.rankDistribution).sort((a, b) =>
+        (round.rankDistribution[b][0] || 0) - (round.rankDistribution[a][0] || 0)
+      );
       const numPositions = Math.max(...candidates.map(c => round.rankDistribution[c].length));
 
       let headerCells = '<th>Candidate</th>';
       for (let i = 0; i < numPositions; i++) {
         headerCells += `<th>${i + 1}${ordinalSuffix(i + 1)}</th>`;
       }
-      headerCells += '<th>Total</th>';
+      if (showTotal) headerCells += '<th>Total</th>';
 
       let bodyRows = '';
       for (const candidate of candidates) {
@@ -897,7 +984,7 @@ function renderIRVRounds(result, container) {
           total += count;
           cells += `<td class="${i === 0 ? 'rank-first' : ''}">${count}</td>`;
         }
-        cells += `<td class="rank-total">${total}</td>`;
+        if (showTotal) cells += `<td class="rank-total">${total}</td>`;
         const trClass = eliminatedSet.has(candidate) ? ' class="eliminated-row"' : '';
         bodyRows += `<tr${trClass}>${cells}</tr>`;
       }
