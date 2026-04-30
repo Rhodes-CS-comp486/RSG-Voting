@@ -107,7 +107,7 @@ the breakdown, so from the top row it is the question number, then the
 next row is the question that is being asked. Then the columns so the
 answer from everyone that has filled out the form.
 
-**[Instructions:]**
+**[Instructions]**
 
 1.  You need to download the app through our github repo:
     [[https://github.com/Rhodes-CS-comp486/RSG-Voting/releases]{.underline}](https://github.com/Rhodes-CS-comp486/RSG-Voting/releases)
@@ -159,7 +159,7 @@ d.  Windows One Time Download (Orange Underline): RSG.Voting.XXXX.exe
 8.  You also have the option to download a PDF afterwards to keep for
     your own personal records and documentation.
 
-**[Questions:]**
+**[Questions]**
 
 Please contact Dr. Matt Superdock if you have any further questions
 
