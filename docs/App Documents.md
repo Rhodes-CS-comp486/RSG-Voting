@@ -1,6 +1,6 @@
 **RSG Voting Tabulator**
 
-**[Overview:]{.underline}**
+**[Overview:]**
 
 This electron built app was created to be able to make the process of
 counting election votes easier and more efficient for those responsible
@@ -17,7 +17,7 @@ can customize the vote tabulation process, specify the number of seats
 available for each position, and combine votes from multiple ballots
 using a dedicated "combine" button within the election preview page.
 
-**[CSV File Format Requirements]{.underline}**
+**[CSV File Format Requirements]**
 
 To ensure the application functions correctly, uploaded CSV files must
 follow a consistent structure in order to be read correctly. While the
@@ -107,7 +107,7 @@ the breakdown, so from the top row it is the question number, then the
 next row is the question that is being asked. Then the columns so the
 answer from everyone that has filled out the form.
 
-**[Instructions:]{.underline}**
+**[Instructions:]**
 
 1.  You need to download the app through our github repo:
     [[https://github.com/Rhodes-CS-comp486/RSG-Voting/releases]{.underline}](https://github.com/Rhodes-CS-comp486/RSG-Voting/releases)
@@ -159,7 +159,7 @@ d.  Windows One Time Download (Orange Underline): RSG.Voting.XXXX.exe
 8.  You also have the option to download a PDF afterwards to keep for
     your own personal records and documentation.
 
-**[Questions:]{.underline}**
+**[Questions:]**
 
 Please contact Dr. Matt Superdock if you have any further questions
 
