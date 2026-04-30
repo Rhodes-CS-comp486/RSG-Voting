@@ -9,10 +9,11 @@ An electron app that allows Rhodes Student Government to more accurately count e
 1. You need to download the app through our github repository : https://github.com/Rhodes-CS-comp486/RSG-Voting/releases
 2. There are multiple ways to download the app depending on your PC Operating System. 
 
-   * X’s represent the most updated version
-   * Windows: RSG.Voting.Setup.XXXX.exe file
-   * Mac: RSG.Voting-XXXX-arm64.dmg
-   * Intel Mac: RSG.Voting-XXXX.dmg
+  X’s represent the most updated version
+     * Windows: RSG.Voting.Setup.XXXX.exe file
+     * Mac: RSG.Voting-XXXX-arm64.dmg
+     * Intel Mac: RSG.Voting-XXXX.dmg
+     
 3. From there you will receive a message warning you, click “Trust” and you will have the app downloaded on your desktop.
 4. From there you are taken to a screen where you may either upload the CSV files that are needed for the certain election or use the manual entry option which could be used for certain testing. 
 5. From there decide how you want to run that certain election (3 options: Multi-Seat Voting(Current), Ranked Choice, or Points-Based Voting).
