@@ -28,6 +28,11 @@ An electron app that allows Rhodes Student Government to more accurately count e
 
 
 
-Senior Seminar Folder:
-https://drive.google.com/drive/folders/1BJjvs934HvZcQNrafTJHVq95xsSPJ5kJ
+App Documents:
+[App Documents.pdf](https://github.com/user-attachments/files/27262612/App.Documents.pdf)
+
+Developer Instructions:
+[Developer Instructions.pdf](https://github.com/user-attachments/files/27262642/Developer.Instructions.pdf)
+
+
 
