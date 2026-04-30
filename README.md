@@ -10,6 +10,7 @@ An electron app that allows Rhodes Student Government to more accurately count e
 2. There are multiple ways to download the app depending on your PC Operating System. 
 
   X’s represent the most updated version
+  
      * Windows: RSG.Voting.Setup.XXXX.exe file
      * Mac: RSG.Voting-XXXX-arm64.dmg
      * Intel Mac: RSG.Voting-XXXX.dmg
