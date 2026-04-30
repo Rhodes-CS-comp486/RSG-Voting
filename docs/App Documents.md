@@ -1,6 +1,6 @@
 **RSG Voting Tabulator**
 
-**[Overview:]**
+**[Overview]**
 
 This electron built app was created to be able to make the process of
 counting election votes easier and more efficient for those responsible
