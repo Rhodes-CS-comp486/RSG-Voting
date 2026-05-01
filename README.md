@@ -23,7 +23,7 @@ An electron app that allows Rhodes Student Government to more accurately count e
 8. You also have the option to download a PDF afterwards to keep for your own personal records and documentation.
 
 
-**Please see the docs folder for more in-depth documentation**
+**Please see the following for more in-depth documentation**
 
 
 
