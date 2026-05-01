@@ -81,7 +81,7 @@ Use a single column with the question as the header in Row 2. Cell values must b
 | 3 | {ImportId} | 1 | 2 | 1 |
 | 4 | R_abc123 | 1 | 2 | Yes |
 | 5 | R_def456 | 2 | 1 | No |
-| 6 | R_ghi789 | 1 | (blank) | Yes |
+| 6 | R_ghi789 | 1 |  | Yes |
 
 ---
 
