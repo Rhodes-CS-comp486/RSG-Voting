@@ -1,6 +1,6 @@
 {
   "name": "rsg-voting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An app that allows Rhodes Student Government to more accurately count election results",
   "main": "src/main.js",
   "scripts": {
