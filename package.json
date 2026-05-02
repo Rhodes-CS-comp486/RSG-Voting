@@ -46,6 +46,7 @@
       ]
     },
     "win": {
+      "icon": "src/renderer/assets/RSG_taskbar.ico",
       "target": [
         "nsis",
         "portable"
